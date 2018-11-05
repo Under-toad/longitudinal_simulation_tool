@@ -1,0 +1,4 @@
+B <- simulate_trajectory(n.obs=50 , max.time=30, record.times=10,
+                         part.1.average=c("rnorm","100", "3"), part.1.slope=c("rlnorm", "3", "0.2", "log(t)/t") , 
+                         part.2.slope=c("rnorm", "1", "0.5", "cos(t)") , time.step.change=c("runif","10", "20") , value.step.change=c("rnorm","-100", "3"), sd.error=c("rlnorm","1", "0.5"), 
+                         between.cor=0.3, within.cor=0.5)
