@@ -1,0 +1,307 @@
+simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, record.times.vary=1,
+                                part.1.average=character() , part.2.average=character() , 
+                                part.1.slope=c("rnorm", "0", "1", "1") , part.2.slope=c("rnorm", "0", "1", "1") , 
+                                time.step.change=c("rnorm", "0", "1") , value.step.change=character() , 
+                                sd.error=c("rlnorm","0.5", "0.5"), between.cor=0, within.cor=0){ 
+  #load libraries required
+  library(ggplot2)
+  library(gridExtra)
+  library(Matrix)
+  library(matrixcalc)
+  library(MASS)
+  
+  #load covariance function
+  Covar <- function(n=2,SD=data.frame(1,1),Cor=data.frame(0.5)) {
+    # cov(i,j) = cor(i,j)*sd(i)*sd(j)
+    Cov <- matrix(nrow=n,ncol=n)
+    for (i in 1:n) { for (j in 1:n) { Cov[i,j] <- Cor[i,j]*SD[i]*SD[j] }} 
+    Cov <- as.matrix(forceSymmetric(Cov))
+    if (!is.positive.definite(Cov)) {
+      print("Warning: covariance matrix made Positive Definite")
+      Cov <- as.matrix(nearPD(Cov)$mat) }
+    return(Cov) 
+  }
+  
+  if (length(part.1.slope)==3){
+    part.1.slope[4]<-"1"
+  }  
+  if (length(part.2.slope)==3){
+    part.2.slope[4]<-"1"
+  } 
+  
+  #warning messages for if incorrect number of things are specified -- only two of part.2.average, part.1.average and value.step.change can be specified
+  if (length(part.2.average)>0 && length(part.1.average)>0 && length(value.step.change)>0) {
+    print("Warning: Only 3 distributions of part.1.average, part.2.average and value.step.change can be used. part.2.average input ignored.")
+  }
+  if(length(part.2.average)==0 && (length(part.1.average)==0 | length(value.step.change)==0) | (length(part.1.average)==0 && length(value.step.change)==0)){
+    stop("Too few distributions specified. Two distributions out of part.1.average, part.2.average and value.step.change must be specified.")
+  }
+  if (abs(between.cor)>1){
+    stop("between.cor incorrectly specified. between.cor must lie between -1 and 1")
+  }
+  if (abs(within.cor)>1){
+    stop("within.cor incorrectly specified. within.cor must lie between -1 and 1")
+  }
+  #set up some values and things
+  maxt<-max.time 
+  obs<-n.obs 
+  slope.1.mult<-part.1.slope[4]
+  slope.2.mult<-part.2.slope[4]
+  
+  #set true parameter values for individuals depending on what has been specified
+  eval(parse(text=paste("slope1<-" , part.1.slope[1] , "(", obs, "," , part.1.slope[2] , "," , part.1.slope[3] , ")" , sep="")))
+  slope1<-paste(slope1, "*", slope.1.mult, "*t", sep="")
+  eval(parse(text=paste("slope2<-" , part.2.slope[1] , "(", obs, "," , part.2.slope[2] , "," , part.2.slope[3] , ")" , sep="")))
+  slope2<-paste(slope2, "*", slope.2.mult, "*t", sep="") 
+  slope1.funct<-list(length=length(slope1))
+  slope2.funct<-list(length=length(slope2))
+  for (i in 1:length(slope2)){
+    eval(parse(text=paste("slope2.funct[[i]]<-as.function(alist(t=, ", slope2[i],"))", sep="")))
+    eval(parse(text=paste("slope1.funct[[i]]<-as.function(alist(t=, ", slope1[i],"))", sep="")))
+  }
+  
+  eval(parse(text=paste("jumptime<-" , time.step.change[1] , "(", obs, "," , time.step.change[2] , "," , time.step.change[3] , ")" , sep="")))
+  eval(parse(text=paste("errorsd<-" , sd.error[1] , "(", obs, "," , sd.error[2] , "," , sd.error[3] , ")" , sep="")))
+  errorsd<-abs(errorsd)
+  
+  
+  #set true parameter values for non-specified parameter
+  if (length(part.2.average)==0 | (length(part.2.average)>0 && length(part.1.average)>0 && length(value.step.change)>0)) {
+    eval(parse(text=paste("jumpval<-" , value.step.change[1] , "(", obs, "," , value.step.change[2] , "," , value.step.change[3] , ")" , sep="")))
+    eval(parse(text=paste("average1<-" , part.1.average[1] , "(", obs, "," , part.1.average[2] , "," , part.1.average[3] , ")" , sep=""))) 
+    intercept.2<-numeric(length=obs)
+    true.start<-numeric(length=obs)
+    average2<-numeric(length=obs)
+    for (i in 1:obs){
+      true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i])$value)/jumptime[i]
+      intercept.2[i]<-slope1.funct[[i]](jumptime[i])+true.start[i]+jumpval[i]-slope2.funct[[i]](jumptime[i])
+      average2[i]<-(integrate(slope2.funct[[i]], upper=maxt, lower=jumptime[i])$value+intercept.2[i]*(maxt-jumptime[i]))/(maxt-jumptime[i])
+    }
+    
+  }
+  if (length(part.1.average)==0) {
+    eval(parse(text=paste("jumpval<-" , value.step.change[1] , "(", obs, "," , value.step.change[2] , "," , value.step.change[3] , ")" , sep="")))
+    eval(parse(text=paste("average2<-" , part.2.average[1] , "(", obs, "," , part.2.average[2] , "," , part.2.average[3] , ")" , sep=""))) 
+    intercept.2<-numeric(length=obs)
+    true.start<-numeric(length=obs)
+    average1<-numeric(length=obs)
+    for (i in 1:obs){
+      intercept.2[i]<-(average2*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt)$value)/(maxt-jumptime[i])
+      true.start[i]<-slope2.funct[[i]](jumptime[i])+intercept.2[i]-jumpval[i]-slope1.funct[[i]](jumptime[i])
+      average1[i]<-(integrate(slope1.funct[[i]], upper=jumptime[i], lower=0)$value+true.start[i]*jumptime[i])/jumptime[i]
+    }
+  }
+  if (length(value.step.change)==0){
+    eval(parse(text=paste("average1<-" , part.1.average[1] , "(", obs, "," , part.1.average[2] , "," , part.1.average[3] , ")" , sep=""))) 
+    eval(parse(text=paste("average2<-" , part.2.average[1] , "(", obs, "," , part.2.average[2] , "," , part.2.average[3] , ")" , sep=""))) 
+    intercept.2<-numeric(length=obs)
+    true.start<-numeric(length=obs)
+    jumpval<-numeric(length=obs)
+    for (i in 1:obs){
+      true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i])$value)/jumptime[i]
+      intercept.2[i]<-(average2*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt)$value)/(maxt-jumptime[i])
+      jumpval[i]<-slope2.funct[[i]](jumptime[i])+intercept.2[i]-slope1.funct[[i]](jumptime[i])-true.start[i]
+    }
+  }
+  
+  #set up more values
+  postjumpt<-ceiling(jumptime)
+  prejumpt<-floor(jumptime)
+  prepostchange<-sapply(1:length(prejumpt), function(x) slope2.funct[[x]](postjumpt[x])+intercept.2[x]-slope1.funct[[x]](prejumpt[x])-true.start[x])
+  
+  
+  #sample measurement times
+  
+  #if uniform sample uniformly for each column and order
+  #if waves, sample each wave based on distribution and order -- resample if outside max time
+  #if no sampling just have the measurement times
+  if (length(record.times)==1) {
+    times<-matrix(ncol=obs, nrow=record.times)
+    for (i in 1:obs){
+      times[,i]<-runif(record.times, 0, maxt)
+      times[,i]<-times[order(times[,i]), i]
+    }
+  } 
+  if (length(record.times)>1 & length(record.times)>0) {
+    times<-matrix(ncol=obs, nrow=length(record.times))
+    for (i in 1:obs){
+      for (j in 1:length(record.times)){
+        while(is.na(times[j,i])==T | times[j,i]<0 | times [j,i]>maxt){
+          times[j,i]<-rnorm(1, record.times[j], record.times.vary)
+        }
+      }
+      times[,i]<-times[order(times[,i]), i]
+    }
+  }
+  if (length(record.times)==0){
+    times<-matrix(data=rep(c(0:maxt), obs), ncol=obs, nrow=maxt+1)
+  }
+
+  #vector of error values for each measure for each individual together
+  sd<-numeric(length=(nrow(times))*obs)
+  for (x in 1:(nrow(times))) {
+    for (y in 1:obs) { 
+      sd[(nrow(times))*(y-1)+x]<-errorsd[y]
+    }
+  }
+  
+  #matrix of phases
+  phases<-matrix(ncol=obs, nrow=nrow(times))
+  for (i in 1:obs){
+    for (j in 1:nrow(phases)){
+      if (times[j,i]<=prejumpt[i]){
+        phases[j,i]<-1
+      } else {
+        phases[j,i]<-2
+      }
+    }
+  }
+  
+  #matrix of true values
+  value.true<-matrix(ncol=obs, nrow=nrow(times))
+  for (i in 1:obs){
+    for (j in 1:nrow(value.true)){
+      if (phases[j,i]==1){
+        value.true[j,i]<-true.start[i]+slope1.funct[[i]](times[j,i])#function 1 of time[j,i]
+      } else {
+        value.true[j,i]<-intercept.2[i]+slope2.funct[[i]](times[j,i])
+      }
+    }
+  }
+  
+  #correlation and then covariance matrix using time differences
+  covmat<-matrix(ncol=nrow(times)*obs, nrow=nrow(times)*obs)
+  for (id1 in 1:obs){
+    for (time1 in 1:nrow(times)){
+      for(id2 in 1:obs){
+        for(time2 in 1:nrow(times)){
+          time.dif<-abs(times[time1,id1]-times[time2,id2])
+         if (id1==id2){
+            covmat[(nrow(times)*(id1-1))+time1, (nrow(times)*(id2-1))+time2]<-within.cor^time.dif
+          } else {
+           covmat[(nrow(times)*(id1-1))+time1, (nrow(times)*(id2-1))+time2]<-(within.cor^time.dif)*between.cor
+         }
+        }
+      }
+    }
+  }
+  
+  covmat<-Covar(n=obs*(nrow(times)), sd<-sd, Cor=covmat)
+  
+  #sim data and add times to the data in wide format
+  value<-matrix(as.numeric(mvrnorm(n=1, Sigma=data.frame(covmat), mu<-as.numeric(value.true))), nrow=(nrow(times)))
+  value<-data.frame(t(value))
+  times<-data.frame(t(times))
+  for (i in 1:ncol(times)){
+    colnames(times)[i]<-c(paste("time", i, sep="."))
+    colnames(value)[i]<-c(paste("value", i, sep="."))
+  }
+
+
+  
+  #generate summary stats for each individual
+  summary<-data.frame()
+  for (i in 1:obs) {
+    
+    realpjt<-max(which(times[i,]<=prejumpt[i]))
+    if (realpjt==ncol(times)){
+      mean2<-NA
+      jump<-NA
+    } else {
+      mean2<-mean(as.numeric(value[i, (realpjt+1):ncol(times)], na.rm=TRUE))
+      jump<-value[i, realpjt+1]-value[i, realpjt]
+    }
+    summary<-rbind(summary, c(i, 
+                              average1[i], 
+                              (integrate(slope1.funct[[i]], lower=0, upper=prejumpt[i])$value+true.start[i]*prejumpt[i])/prejumpt[i], 
+                              mean(as.numeric(value[i, 1:realpjt], na.rm=TRUE)),
+                              average2[i],  
+                              (integrate(slope2.funct[[i]], lower=postjumpt[i], upper=maxt)$value+intercept.2[i]*(maxt-postjumpt[i]))/(maxt-postjumpt[i]), 
+                              mean2,
+                              jumptime[i], 
+                              jumpval[i], 
+                              prepostchange[i], 
+                              jump,
+                              errorsd[i]))
+  }
+  
+  colnames(summary)<-c( "id",  
+                        "average1.input", "average1.expected", "average1.output",
+                        "average2.input", "average2.expected", "average2.output",
+                        "jumptime.input", "jump.input", "jump.expected", "jump.output", "error.sd")
+  #reshape data to long format
+  value$id<-c(1:nrow(value))
+  times$id<-c(1:nrow(times))
+  value<-reshape(value, varying=colnames(value[,1:(ncol(value)-1)]), idvar<-"meas.no", direction="long", timevar<-"id", sep=".", v.names=c("value"))
+  times<-reshape(times, varying=colnames(times[,1:(ncol(times)-1)]), idvar<-"meas.no", direction="long", timevar<-"id", sep=".", v.names=c("time"))
+  
+  value<-cbind(value, times$time)
+  colnames(value)[4]<-c("time")
+  value<-value[order(value$id, value$meas.no),]
+  #plots and stuff
+  if (obs>10){
+    p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(id)))+
+      geom_line(aes(y=value))+
+      geom_point(aes(y=value))+
+      theme(legend.position="none", plot.title=element_text(size=10))+
+      ggtitle("Simulated data patterns")
+  } else {
+    p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(id)))+
+      geom_line(aes(y=value))+
+      geom_point(aes(y=value))+
+      ggtitle("Simulated data patterns")+
+      theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
+      scale_colour_discrete(name="Observation ID")
+  }
+  
+  
+  summary$average1.dist<-summary$average1.output-summary$average1.expected
+  summary$average1.dist.2<-summary$average1.output-summary$average1.input
+  
+  summary$average2.dist<-summary$average2.output-summary$average2.expected
+  summary$average2.dist.2<-summary$average2.output-summary$average2.input
+  
+  summary$jump.dist<-summary$jump.output-summary$jump.expected
+  summary$jump.dist.2<-summary$jump.output-summary$jump.input
+  
+  p3<-ggplot(summary, aes(average1.dist.2))+
+    geom_density()+
+    xlab("Distances from average 1 input")+
+    theme(axis.title=element_text(size=10))
+  
+  p6<-ggplot(summary, aes(average2.dist))+
+    geom_density()+
+    xlab("Distances from average 2 input")+
+    theme(axis.title=element_text(size=10))
+  
+  p7<-ggplot(summary, aes(jump.dist))+
+    geom_density()+
+    xlab("Distances from expected step change")+
+    theme(axis.title=element_text(size=10))
+  
+  p8<-ggplot(summary, aes(jump.dist.2))+
+    geom_density()+
+    xlab("Distances from step change input")+
+    theme(axis.title=element_text(size=10))
+  
+  summary.plot<-grid.arrange(grobs=list(p3,p6,p7,p8,p0),  layout_matrix=rbind(c(1,1,2,2), c(3,3,4,4), c(5,5,5,5), c(5,5,5,5)))
+  summary.plot
+  
+  #return list of data, summary and plot
+  
+  slope1<-paste(true.start, "+", slope1, sep="")
+  slope2<-paste(intercept.2, "+", slope2, sep="") 
+  slope1.funct<-list(length=length(slope1))
+  slope2.funct<-list(length=length(slope2))
+  for (i in 1:length(slope2)){
+    eval(parse(text=paste("slope2.funct[[i]]<-as.function(alist(t=, ", slope2[i],"))", sep="")))
+    eval(parse(text=paste("slope1.funct[[i]]<-as.function(alist(t=, ", slope1[i],"))", sep="")))
+  }
+  ret.list<-list(data=value, 
+                 simulation.summary=summary[,c(1:12)],
+                 plot=summary.plot, 
+                 section1.function=slope1.funct, 
+                 section2.function=slope2.funct)
+  return(ret.list)
+  
+}
