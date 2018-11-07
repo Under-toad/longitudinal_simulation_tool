@@ -2,7 +2,8 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
                                 part.1.average=character() , part.2.average=character() , 
                                 part.1.slope=c("rnorm", "0", "1", "1") , part.2.slope=c("rnorm", "0", "1", "1") , 
                                 time.step.change=c("rnorm", "0", "1") , value.step.change=character() , 
-                                sd.error=c("rlnorm","0.5", "0.5"), between.cor=0, within.cor=0){ 
+                                sd.error=c("rlnorm","0.5", "0.5"), between.cor=0, within.cor=0, 
+                                spacegroups=NULL, spacegroup.size=NULL, area.x=NULL, area.y=NULL){ 
   #load libraries required
   library(ggplot2)
   library(gridExtra)
@@ -136,7 +137,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
   if (length(record.times)==0){
     times<-matrix(data=rep(c(0:maxt), obs), ncol=obs, nrow=maxt+1)
   }
-
+  
   #vector of error values for each measure for each individual together
   sd<-numeric(length=(nrow(times))*obs)
   for (x in 1:(nrow(times))) {
@@ -169,18 +170,43 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     }
   }
   
-  #correlation and then covariance matrix using time differences
+  #generate coordinate matrix depending on the number of groups
+  if (length(spacegroups)==1){
+    spacegroup<-round(runif(min=0.51, max=spacegroups+0.49, n=obs))
+  x.coord<-numeric(length=obs)
+  y.coord<-numeric(length=obs)
+  spacegroup.mean.x<-runif(spacegroups, 0, area.x)
+  spacegroup.mean.y<-runif(spacegroups, 0, area.y)
+  for(f in 1:spacegroups){
+    x.coord[which(spacegroup==f)]<-rnorm(length(spacegroup[which(spacegroup==f)]), spacegroup.mean.x[f], spacegroup.size)
+    y.coord[which(spacegroup==f)]<-rnorm(length(spacegroup[which(spacegroup==f)]), spacegroup.mean.y[f], spacegroup.size)
+  }
+  
+  #matrix of relative distances
+  distance<-matrix(ncol=obs, nrow=obs)
+  for (id1 in 1:obs){
+    for(id2 in 1:obs){
+      distance[id1,id2]<-((x.coord[id1]-x.coord[id2])^2+(y.coord[id1]-y.coord[id2])^2)^0.5
+    }
+  }
+  spacegroup.info<-cbind(group.no=c(1:spacegroups), spacegroup.mean.x, spacegroup.mean.y, coord.sd=rep(spacegroup.size, spacegroups))
+  individual.coords<-cbind(spacegroup,x.coord,y.coord)
+  } else {
+    distance<-matrix(ncol=obs, nrow=obs, rep(1, obs^2))
+  }
+  
+  #correlation and then covariance matrix using time and space differences
   covmat<-matrix(ncol=nrow(times)*obs, nrow=nrow(times)*obs)
   for (id1 in 1:obs){
     for (time1 in 1:nrow(times)){
       for(id2 in 1:obs){
         for(time2 in 1:nrow(times)){
           time.dif<-abs(times[time1,id1]-times[time2,id2])
-         if (id1==id2){
+          if (id1==id2){
             covmat[(nrow(times)*(id1-1))+time1, (nrow(times)*(id2-1))+time2]<-within.cor^time.dif
           } else {
-           covmat[(nrow(times)*(id1-1))+time1, (nrow(times)*(id2-1))+time2]<-(within.cor^time.dif)*between.cor
-         }
+            covmat[(nrow(times)*(id1-1))+time1, (nrow(times)*(id2-1))+time2]<-(within.cor^time.dif)*between.cor*distance[id1, id2]
+          }
         }
       }
     }
@@ -196,8 +222,8 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     colnames(times)[i]<-c(paste("time", i, sep="."))
     colnames(value)[i]<-c(paste("value", i, sep="."))
   }
-
-
+  
+  
   
   #generate summary stats for each individual
   summary<-data.frame()
@@ -297,11 +323,20 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     eval(parse(text=paste("slope2.funct[[i]]<-as.function(alist(t=, ", slope2[i],"))", sep="")))
     eval(parse(text=paste("slope1.funct[[i]]<-as.function(alist(t=, ", slope1[i],"))", sep="")))
   }
+  if (length(spacegroups==1)){
+    ret.list<-list(data=value, 
+                   simulation.summary=summary[,c(1:12)],
+                   plot=summary.plot, 
+                   section1.function=slope1.funct, 
+                   section2.function=slope2.funct,
+                   coordinates.info=list(spacegroup.info, individual.coords))
+  } else {
   ret.list<-list(data=value, 
                  simulation.summary=summary[,c(1:12)],
                  plot=summary.plot, 
                  section1.function=slope1.funct, 
                  section2.function=slope2.funct)
+  }
   return(ret.list)
   
 }
