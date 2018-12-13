@@ -2,8 +2,10 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
                                 part.1.average=character() , part.2.average=character() , 
                                 part.1.slope=c("rnorm", "0", "1", "1") , part.2.slope=c("rnorm", "0", "1", "1") , 
                                 time.step.change=c("rnorm", "0", "1") , value.step.change=character() , 
-                                sd.error=c("rlnorm","0.5", "0.5"), between.cor=0, within.cor=0, 
-                                spacegroups=NULL, spacegroup.size=NULL, area.x=NULL, area.y=NULL){ 
+                                sd.error=c("rlnorm","0.5", "0.5"), between.cor=0, within.cor=0,
+                                dayreps=1, dayreps.cor=0,
+                                spacegroups1=NULL, spacegroup1.size=NULL, between.cor2=0,
+                                origin.dest=FALSE, area.x=NULL, area.y=NULL){ 
   #load libraries required
   library(ggplot2)
   library(gridExtra)
@@ -43,9 +45,13 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
   if (abs(within.cor)>1){
     stop("within.cor incorrectly specified. within.cor must lie between -1 and 1")
   }
+  #need some error messages for things in the spacegroups2 dept
   #set up some values and things
   maxt<-max.time 
   obs<-n.obs 
+  if (dayreps>1){
+    obs<-n.obs*dayreps
+  }
   slope.1.mult<-part.1.slope[4]
   slope.2.mult<-part.2.slope[4]
   
@@ -170,30 +176,69 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     }
   }
   
+  
   #generate coordinate matrix depending on the number of groups
-  if (length(spacegroups)==1){
-    spacegroup<-round(runif(min=0.51, max=spacegroups+0.49, n=obs))
-  x.coord<-numeric(length=obs)
-  y.coord<-numeric(length=obs)
-  spacegroup.mean.x<-runif(spacegroups, 0, area.x)
-  spacegroup.mean.y<-runif(spacegroups, 0, area.y)
-  for(f in 1:spacegroups){
-    x.coord[which(spacegroup==f)]<-rnorm(length(spacegroup[which(spacegroup==f)]), spacegroup.mean.x[f], spacegroup.size)
-    y.coord[which(spacegroup==f)]<-rnorm(length(spacegroup[which(spacegroup==f)]), spacegroup.mean.y[f], spacegroup.size)
+  if (length(spacegroups1)==1){
+    spacegroup1<-round(runif(min=0.51, max=spacegroups1+0.49, n=obs/dayreps))
+    x.coord1<-numeric(length=obs/dayreps)
+    y.coord1<-numeric(length=obs/dayreps)
+    spacegroup1.mean.x<-runif(spacegroups1, 0, area.x)
+    spacegroup1.mean.y<-runif(spacegroups1, 0, area.y)
+    for(f in 1:spacegroups1){
+      x.coord1[which(spacegroup1==f)]<-rnorm(length(spacegroup1[which(spacegroup1==f)]), spacegroup1.mean.x[f], spacegroup1.size)
+      y.coord1[which(spacegroup1==f)]<-rnorm(length(spacegroup1[which(spacegroup1==f)]), spacegroup1.mean.y[f], spacegroup1.size)
+    }
+    x.coord1<-rep(x.coord1,dayreps)
+    y.coord1<-rep(y.coord1,dayreps)
+    
+    
+    #matrix of relative distances 1
+    distance1<-matrix(ncol=obs, nrow=obs)
+    for (id1 in 1:obs){
+      for(id2 in 1:obs){
+        distance1[id1,id2]<-((x.coord1[id1]-x.coord1[id2])^2+(y.coord1[id1]-y.coord1[id2])^2)^0.5
+      }
+    }
+    spacegroup.info<-cbind(group.no=c(1:spacegroups1), spacegroup1.mean.x, spacegroup1.mean.y, coord.sd=rep(spacegroup1.size, spacegroups1))
+    individual.coords1<-cbind(spacegroup1,x.coord1,y.coord1)
+  } else {
+    distance1<-matrix(ncol=obs, nrow=obs, rep(1, obs^2))
   }
   
-  #matrix of relative distances
-  distance<-matrix(ncol=obs, nrow=obs)
+  #repeat for destination coords
+  if (origin.dest==TRUE){
+    spacegroup2<-round(runif(min=0.51, max=spacegroups1+0.49, n=obs/dayreps))
+    x.coord2<-numeric(length=obs/dayreps)
+    y.coord2<-numeric(length=obs/dayreps)
+    for(f in 1:spacegroups1){
+      x.coord2[which(spacegroup2==f)]<-rnorm(length(spacegroup2[which(spacegroup2==f)]), spacegroup1.mean.x[f], spacegroup1.size)
+      y.coord2[which(spacegroup2==f)]<-rnorm(length(spacegroup2[which(spacegroup2==f)]), spacegroup1.mean.y[f], spacegroup1.size)
+    }
+    x.coord2<-rep(x.coord2,dayreps)
+    y.coord2<-rep(y.coord2,dayreps)
+    
+    #matrix of relative distances 2
+    distance2<-matrix(ncol=obs, nrow=obs)
+    for (id1 in 1:obs){
+      for(id2 in 1:obs){
+        distance2[id1,id2]<-((x.coord2[id1]-x.coord2[id2])^2+(y.coord2[id1]-y.coord2[id2])^2)^0.5
+      }
+    }
+    individual.coords2<-cbind(spacegroup2,x.coord2,y.coord2)
+  } else {
+    distance2<-matrix(ncol=obs, nrow=obs, rep(1, obs^2))
+  }
+  
+  #matrix of day differences
+  daynumbers<-rep(c(1:dayreps), n.obs)
+  daynumbers<-daynumbers[order(daynumbers)]
+  days<-matrix(ncol=obs,nrow=obs)
   for (id1 in 1:obs){
     for(id2 in 1:obs){
-      distance[id1,id2]<-((x.coord[id1]-x.coord[id2])^2+(y.coord[id1]-y.coord[id2])^2)^0.5
+      days[id1,id2]<-abs(daynumbers[id1]-daynumbers[id2])
     }
   }
-  spacegroup.info<-cbind(group.no=c(1:spacegroups), spacegroup.mean.x, spacegroup.mean.y, coord.sd=rep(spacegroup.size, spacegroups))
-  individual.coords<-cbind(spacegroup,x.coord,y.coord)
-  } else {
-    distance<-matrix(ncol=obs, nrow=obs, rep(1, obs^2))
-  }
+  
   
   #correlation and then covariance matrix using time and space differences
   covmat<-matrix(ncol=nrow(times)*obs, nrow=nrow(times)*obs)
@@ -205,7 +250,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
           if (id1==id2){
             covmat[(nrow(times)*(id1-1))+time1, (nrow(times)*(id2-1))+time2]<-within.cor^time.dif
           } else {
-            covmat[(nrow(times)*(id1-1))+time1, (nrow(times)*(id2-1))+time2]<-(within.cor^time.dif)*between.cor^distance[id1, id2]
+            covmat[(nrow(times)*(id1-1))+time1, (nrow(times)*(id2-1))+time2]<-within.cor^time.dif*between.cor^distance1[id1, id2]*between.cor2^distance2[id1, id2]*dayreps.cor^days[id1,id2]
           }
         }
       }
@@ -262,22 +307,44 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
   times<-reshape(times, varying=colnames(times[,1:(ncol(times)-1)]), idvar<-"meas.no", direction="long", timevar<-"id", sep=".", v.names=c("time"))
   
   value<-cbind(value, times$time)
+  if (dayreps>1){
+    value<-cbind(value, daynumbers)
+    value$id<-rep(c(1:n.obs), dayreps)
+    value$idday<-as.factor(paste(value$id, value$daynumbers, sep=":"))
+  }
   colnames(value)[4]<-c("time")
   value<-value[order(value$id, value$meas.no),]
   #plots and stuff
   if (obs>10){
-    p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(id)))+
-      geom_line(aes(y=value))+
-      geom_point(aes(y=value))+
-      theme(legend.position="none", plot.title=element_text(size=10))+
-      ggtitle("Simulated data patterns")
+    if(dayreps==1){
+      p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(id)))+
+        geom_line(aes(y=value))+
+        geom_point(aes(y=value))+
+        theme(legend.position="none", plot.title=element_text(size=10))+
+        ggtitle("Simulated data patterns")
+    } else{
+      p0<-ggplot(data=value, aes(x=time, group=idday, colour=as.factor(id)))+
+        geom_line(aes(y=value))+
+        geom_point(aes(y=value))+
+        theme(legend.position="none", plot.title=element_text(size=10))+
+        ggtitle("Simulated data patterns")  
+    }
   } else {
-    p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(id)))+
-      geom_line(aes(y=value))+
-      geom_point(aes(y=value))+
-      ggtitle("Simulated data patterns")+
-      theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
-      scale_colour_discrete(name="Observation ID")
+    if(dayreps==1){
+      p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(id)))+
+        geom_line(aes(y=value))+
+        geom_point(aes(y=value))+
+        ggtitle("Simulated data patterns")+
+        theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
+        scale_colour_discrete(name="Observation ID")
+    } else {
+      p0<-ggplot(data=value, aes(x=time, group=idday, colour=as.factor(id)))+
+        geom_line(aes(y=value))+
+        geom_point(aes(y=value))+
+        ggtitle("Simulated data patterns")+
+        theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
+        scale_colour_discrete(name="Observation ID") 
+    }
   }
   
   
@@ -323,19 +390,30 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     eval(parse(text=paste("slope2.funct[[i]]<-as.function(alist(t=, ", slope2[i],"))", sep="")))
     eval(parse(text=paste("slope1.funct[[i]]<-as.function(alist(t=, ", slope1[i],"))", sep="")))
   }
-  if (length(spacegroups==1)){
+  if (length(spacegroups1==1)){
+    if (origin.dest==TRUE){
+      print("arrived")
+      ret.list<-list(data=value, 
+                     simulation.summary=summary[,c(1:12)],
+                     plot=summary.plot, 
+                     section1.function=slope1.funct, 
+                     section2.function=slope2.funct,
+                     coordinates.info=list(spacegroup.info, individual.coords1, individual.coords2))
+    }else{
+      print("nope")
+      ret.list<-list(data=value, 
+                     simulation.summary=summary[,c(1:12)],
+                     plot=summary.plot, 
+                     section1.function=slope1.funct, 
+                     section2.function=slope2.funct,
+                     coordinates.info=list(spacegroup.info, individual.coords1))
+    }
+  } else {
     ret.list<-list(data=value, 
                    simulation.summary=summary[,c(1:12)],
                    plot=summary.plot, 
                    section1.function=slope1.funct, 
-                   section2.function=slope2.funct,
-                   coordinates.info=list(spacegroup.info, individual.coords))
-  } else {
-  ret.list<-list(data=value, 
-                 simulation.summary=summary[,c(1:12)],
-                 plot=summary.plot, 
-                 section1.function=slope1.funct, 
-                 section2.function=slope2.funct)
+                   section2.function=slope2.funct)
   }
   return(ret.list)
   
