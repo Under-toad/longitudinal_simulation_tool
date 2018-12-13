@@ -29,12 +29,15 @@ The function `simulate.trajectory` requires the libraries `ggplot2`, `gridExtra`
 |`time.step.change`|character, length=3|`c("rnorm", "0", "1", "1")`|Population distribution of the time at which the step change between trajectory sections occurs. Individual averages will be sampled from this distribution. Takes the form `distribution, parameter1, parameter2`.|
 |`value.step.change`|character, length=3|no default|Population distribution of the average value of the step change between trajectory sections. Individual averages will be sampled from this distribution. Takes the form `distribution, parameter1, parameter2`. Two of `part.1.average`, `part.2.average` and `value.step.change` must be specified. If all three are specified, `part.2.average` is ignored.|
 |`sd.error`|character, length=3|`sd.error=c("rlnorm","0.5", "0.5")`|Population distribution of the standard deviation of random error terms for each individual. Individual averages will be sampled from this distribution. Takes the form `distribution, parameter1, parameter2`. The absolute value of any negative values will be used.|
-|`between.cor`|numeric, length=1|`0`|Correlation of error terms between individuals at the same time point. Must be between -1 and 1.|
-|`within.cor`|numeric, length=1|`0`|Correlation of error terms within individuals at adjacent time points. An order 1 autocorrelation structure is specified within individuals. Must be between -1 and 1.|
+|`between.cor`|numeric, length=1|`0`|Correlation of error terms between individuals at the same time point. If spatial groups are specified, an order 1 autocorrelation structure following distance between individuals is specified. If origin destination data is specified, an order 1 autocorrelation structure following total distance between origins and between destinations individuals is specified. Must be between -1 and 1.|
+|`within.cor`|numeric, length=1|`0`|Correlation of error terms within individuals between t and t+1 time points. An order 1 autocorrelation structure following time difference is specified within individuals. Must be between -1 and 1.|
 |`spacegroups`|numeric, length=1|no default|Number of spatial groups or clusters of individuals to be included in the dataset.|
 |`spacegroups.size`|numeric, length=1|no default|The average deviation of the x and y coordinates for an individual in a spatial group from its centre (the distribution of points follows a bivariate normal distribution, this is the standard deviation of both distributions that comprise this).|
+|`origin.dest`|logical, length=1|`FALSE`|Specified whether your data relates to a point coordinate (`FALSE`) or a route with an origin and destination (`TRUE`). If `TRUE`, destination coordinates will also be simulated using the spation grouping parameters, and the distance between destination points will affect between individual correlations.|
 |`area.x`|numeric, length=1|no default|Upper bound for x-coordinates of the centre of each spatial group. These will be sampled from a uniform distribution spanning from zero to this value.|
 |`area.y`|numeric, length=1|no default|Upper bound for y-coordinates of the centre of each spatial group. These will be sampled from a uniform distribution spanning from zero to this value.|
+|`dayreps`|numeric, length=1|`1`|If measurements from 0 to max.time are to be repeated on several days (or years etc) for the same observation units, this specifies the number of repeats.|
+|`dayreps.cor`|numeric, length=1|`0`|Correlation of error terms between observations from the same individual at the same time on different days. An order 1 autocorrelation structure is specified within individuals for each increase in days difference. Must be between -1 and 1.|
 # Output
 The function outputs a list containing 5 elements:
 
@@ -45,7 +48,7 @@ The function outputs a list containing 5 elements:
 |`plot`|Graphical object containing spaghetti plot of trajectories and differences of average values and step change values from inputs and expected values. Can be displayed using `plot()` function.|
 |`section1.function`|Individual functions specified for first trajectory section (including multiplier)|
 |`section2.function`|Individual functions specified for second trajectory section (including multiplier)|
-|`coordinates.info`|Contains two parts. The first contains central coordinates for each spatial group. The second contains individual level coordinates and spatial group membership.|
+|`coordinates.info`|Contains two parts. The first contains central coordinates for each spatial group. The second contains individual level coordinates and spatial group membership (for both origin and destination if specified).|
 # Warning messages
 Common warning messages include the following:
 
