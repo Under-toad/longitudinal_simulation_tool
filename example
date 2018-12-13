@@ -1,7 +1,7 @@
 B <- simulate_trajectory(n.obs=10, max.time=30, record.times=10,
                          part.1.average=c("rnorm","100", "3"), part.1.slope=c("rlnorm", "3", "0.2", "log(t)/t") , 
                          part.2.slope=c("rnorm", "1", "0.5", "cos(t)") , time.step.change=c("runif","10", "20") , value.step.change=c("rnorm","-100", "3"), sd.error=c("rlnorm","1", "0.5"), 
-                         between.cor=0.3, within.cor=0.5, dayreps=2, dayreps.cor=0.2, spacegroups=5, spacegroup.size=1, between.cor2=0.1, origin.dest=TRUE, area.x=30, area.y=30)
+                         between.cor=0.3, within.cor=0.5, dayreps=2, dayreps.cor=0.2, spacegroups=5, spacegroup.size=1, origin.dest=TRUE, area.x=30, area.y=30)
 
 #To see coordinates
 coords<-data.frame(cbind(B$coordinates.info[[2]], B$coordinates.info[[3]]))
