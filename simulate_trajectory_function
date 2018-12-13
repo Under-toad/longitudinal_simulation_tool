@@ -4,7 +4,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
                                 time.step.change=c("rnorm", "0", "1") , value.step.change=character() , 
                                 sd.error=c("rlnorm","0.5", "0.5"), between.cor=0, within.cor=0,
                                 dayreps=1, dayreps.cor=0,
-                                spacegroups=NULL, spacegroup.size=NULL, between.cor2=0,
+                                spacegroups=NULL, spacegroup.size=NULL, 
                                 origin.dest=FALSE, area.x=NULL, area.y=NULL){ 
   #load libraries required
   library(ggplot2)
@@ -250,7 +250,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
           if (id1==id2){
             covmat[(nrow(times)*(id1-1))+time1, (nrow(times)*(id2-1))+time2]<-within.cor^time.dif
           } else {
-            covmat[(nrow(times)*(id1-1))+time1, (nrow(times)*(id2-1))+time2]<-within.cor^time.dif*between.cor^distance1[id1, id2]*between.cor2^distance2[id1, id2]*dayreps.cor^days[id1,id2]
+            covmat[(nrow(times)*(id1-1))+time1, (nrow(times)*(id2-1))+time2]<-within.cor^time.dif*between.cor^(distance1[id1, id2]+distance2[id1, id2])*dayreps.cor^days[id1,id2]
           }
         }
       }
