@@ -105,7 +105,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       }
     }
     individual.coords2<-cbind(spacegroup2,x.coord2,y.coord2)
-    routegroup<-as.factor(paste(spacegroup1, spacegroup2,sep=""))
+    routegroup<-as.numeric(paste(spacegroup1, spacegroup2,sep=""))
     groupings<-unique(routegroup)
     groupref<-routegroup
   } else {
@@ -183,8 +183,8 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     #set up vectors
     slope1<-character(length=obs)
     slope2<-character(length=obs)
-    slope1.funct<-list(length=obs)
-    slope2.funct<-list(length=obs)
+    slope1.funct<-vector("list", obs)
+    slope2.funct<-vector("list", obs)
     jumptime<-numeric(length=obs)
     errorsd<-numeric(length=obs)
     jumpval<-numeric(length=obs)
@@ -193,22 +193,26 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     intercept.2<-numeric(length=obs)
     average2<-numeric(length=obs)
     
-    for(q in 1:length(groupings)){
+    for(q in groupings){
       number<-length(which(groupref==q))
-      eval(parse(text=paste("slope1[which(groupref==q)]<-as.character(" , part.1.slope[1] , "(", number, "," , slope1.groups.num[q] , "," , as.numeric(part.1.slope[3])*sd.ratio , "))" , sep="")))
+      eval(parse(text=paste("slope1[which(groupref==q)]<-as.character(" , part.1.slope[1] , "(", number, "," , slope1.groups.num[which(groupings==q)] , "," , as.numeric(part.1.slope[3])*sd.ratio , "))" , sep="")))
+
       slope1[which(groupref==q)]<-paste(slope1[which(groupref==q)], "*", slope.1.mult, "*t", sep="")
-      eval(parse(text=paste("slope2[which(groupref==q)]<-as.character(" , part.2.slope[1] , "(", number, "," , slope2.groups.num[q] , "," , as.numeric(part.2.slope[3])*sd.ratio , "))" , sep="")))
+
+      eval(parse(text=paste("slope2[which(groupref==q)]<-as.character(" , part.2.slope[1] , "(", number, "," , slope2.groups.num[which(groupings==q)] , "," , as.numeric(part.2.slope[3])*sd.ratio , "))" , sep="")))
+
       slope2[which(groupref==q)]<-paste(slope2[which(groupref==q)], "*", slope.2.mult, "*t", sep="") 
-      for (i in which(groupref==q)){
+      for (i in c(which(groupref==q))){
         eval(parse(text=paste("slope2.funct[[i]]<-as.function(alist(t=, ", slope2[i],"))", sep="")))
         eval(parse(text=paste("slope1.funct[[i]]<-as.function(alist(t=, ", slope1[i],"))", sep="")))
       }
-      eval(parse(text=paste("jumptime[which(groupref==q)]<-" , time.step.change[1] , "(", number, "," , jumptime.groups[q] , "," , as.numeric(time.step.change[3])*sd.ratio , ")" , sep="")))
+
+      eval(parse(text=paste("jumptime[which(groupref==q)]<-" , time.step.change[1] , "(", number, "," , jumptime.groups[which(groupings==q)] , "," , as.numeric(time.step.change[3])*sd.ratio , ")" , sep="")))
       eval(parse(text=paste("errorsd[which(groupref==q)]<-abs(" , sd.error[1] , "(", number, "," , sd.error[2] , "," , sd.error[3] , "))" , sep="")))
       
       if (length(part.2.average)==0 | (length(part.2.average)>0 && length(part.1.average)>0 && length(value.step.change)>0)) {
-        eval(parse(text=paste("jumpval[which(groupref==q)]<-" , value.step.change[1] , "(", number, "," , jumpval.groups[q] , "," , as.numeric(value.step.change[3])*sd.ratio , ")" , sep="")))
-        eval(parse(text=paste("average1[which(groupref==q)]<-" , part.1.average[1] , "(", number, "," , average1.groups[q] , "," , as.numeric(part.1.average[3])*sd.ratio , ")" , sep=""))) 
+        eval(parse(text=paste("jumpval[which(groupref==q)]<-" , value.step.change[1] , "(", number, "," , jumpval.groups[which(groupings==q)] , "," , as.numeric(value.step.change[3])*sd.ratio , ")" , sep="")))
+        eval(parse(text=paste("average1[which(groupref==q)]<-" , part.1.average[1] , "(", number, "," , average1.groups[which(groupings==q)] , "," , as.numeric(part.1.average[3])*sd.ratio , ")" , sep=""))) 
         for (i in which(groupref==q)){
           true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i])$value)/jumptime[i]
           intercept.2[i]<-slope1.funct[[i]](jumptime[i])+true.start[i]+jumpval[i]-slope2.funct[[i]](jumptime[i])
@@ -217,8 +221,8 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
         
       }
       if (length(part.1.average)==0) {
-        eval(parse(text=paste("jumpval[which(groupref==q)]<-" , value.step.change[1] , "(", number, "," , jumpval.groups[q] , "," , as.numeric(value.step.change[3])*sd.ratio, ")" , sep="")))
-        eval(parse(text=paste("average2[which(groupref==q)]<-" , part.2.average[1] , "(", number, "," , average2.groups[q] , "," , as.numeric(part.2.average[3])*sd.ratio , ")" , sep=""))) 
+        eval(parse(text=paste("jumpval[which(groupref==q)]<-" , value.step.change[1] , "(", number, "," , jumpval.groups[which(groupings==q)] , "," , as.numeric(value.step.change[3])*sd.ratio, ")" , sep="")))
+        eval(parse(text=paste("average2[which(groupref==q)]<-" , part.2.average[1] , "(", number, "," , average2.groups[which(groupings==q)] , "," , as.numeric(part.2.average[3])*sd.ratio , ")" , sep=""))) 
         for (i in which(groupref==q)){
           intercept.2[i]<-(average2*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt)$value)/(maxt-jumptime[i])
           true.start[i]<-slope2.funct[[i]](jumptime[i])+intercept.2[i]-jumpval[i]-slope1.funct[[i]](jumptime[i])
@@ -226,8 +230,8 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
         }
       }
       if (length(value.step.change)==0){
-        eval(parse(text=paste("average1[which(groupref==q)]<-" , part.1.average[1] , "(", number, "," , average1.groups[q] , "," , as.numeric(part.1.average[3])*sd.ratio , ")" , sep=""))) 
-        eval(parse(text=paste("average2[which(groupref==q)]<-" , part.2.average[1] , "(", number, "," , average2.groups[q] , "," , as.numeric(part.2.average[3])*sd.ratio , ")" , sep=""))) 
+        eval(parse(text=paste("average1[which(groupref==q)]<-" , part.1.average[1] , "(", number, "," , average1.groups[which(groupings==q)] , "," , as.numeric(part.1.average[3])*sd.ratio , ")" , sep=""))) 
+        eval(parse(text=paste("average2[which(groupref==q)]<-" , part.2.average[1] , "(", number, "," , average2.groups[which(groupings==q)] , "," , as.numeric(part.2.average[3])*sd.ratio , ")" , sep=""))) 
         for (i in which(groupref==q)){
           true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i])$value)/jumptime[i]
           intercept.2[i]<-(average2*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt)$value)/(maxt-jumptime[i])
@@ -242,8 +246,8 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
   slope1<-paste(slope1, "*", slope.1.mult, "*t", sep="")
   eval(parse(text=paste("slope2<-" , part.2.slope[1] , "(", obs, "," , part.2.slope[2] , "," , part.2.slope[3] , ")" , sep="")))
   slope2<-paste(slope2, "*", slope.2.mult, "*t", sep="") 
-  slope1.funct<-list(length=length(slope1))
-  slope2.funct<-list(length=length(slope2))
+  slope1.funct<-vector("list", length(slope1))
+  slope2.funct<-vector("list", length(slope2))
   for (i in 1:length(slope2)){
     eval(parse(text=paste("slope2.funct[[i]]<-as.function(alist(t=, ", slope2[i],"))", sep="")))
     eval(parse(text=paste("slope1.funct[[i]]<-as.function(alist(t=, ", slope1[i],"))", sep="")))
