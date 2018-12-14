@@ -501,19 +501,37 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     }
   } else {
     if(dayreps==1){
-      p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(id)))+
-        geom_line(aes(y=value))+
-        geom_point(aes(y=value))+
-        ggtitle("Simulated data patterns")+
-        theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
-        scale_colour_discrete(name="Observation ID")
-    } else {
-      p0<-ggplot(data=value, aes(x=time, group=idday, colour=as.factor(id)))+
-        geom_line(aes(y=value))+
-        geom_point(aes(y=value))+
-        ggtitle("Simulated data patterns")+
-        theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
-        scale_colour_discrete(name="Observation ID") 
+      if(exists("groupings")==T){
+        p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(groupref)))+
+          geom_line(aes(y=value))+
+          geom_point(aes(y=value))+
+          theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
+          scale_colour_discrete(name="Spatial group")+
+          ggtitle("Simulated data patterns")
+      } else{
+        p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(id)))+
+          geom_line(aes(y=value))+
+          geom_point(aes(y=value))+
+          theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
+          scale_colour_discrete(name="Observation ID")+
+          ggtitle("Simulated data patterns")
+      }
+    } else{
+      if(exists("groupings")==T){
+        p0<-ggplot(data=value, aes(x=time, group=idday, colour=as.factor(groupref)))+
+          geom_line(aes(y=value))+
+          geom_point(aes(y=value))+
+          theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
+          scale_colour_discrete(name="Spatial group")+
+          ggtitle("Simulated data patterns")  
+      } else{
+        p0<-ggplot(data=value, aes(x=time, group=idday, colour=as.factor(id)))+
+          geom_line(aes(y=value))+
+          geom_point(aes(y=value))+
+          theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
+          scale_colour_discrete(name="Observation ID")+
+          ggtitle("Simulated data patterns")  
+      }
     }
   }
   
