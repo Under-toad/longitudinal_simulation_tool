@@ -5,7 +5,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
                                 sd.error=c("rlnorm","0.5", "0.5"), between.cor=0, within.cor=0,
                                 dayreps=1, dayreps.cor=0,
                                 spacegroups=NULL, spacegroup.size=NULL, 
-                                origin.dest=FALSE, area.x=NULL, area.y=NULL){ 
+                                origin.dest=FALSE, area.x=NULL, area.y=NULL, sd.ratio=0.5){ 
   #load libraries required
   library(ggplot2)
   library(gridExtra)
@@ -54,6 +54,188 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
   }
   slope.1.mult<-part.1.slope[4]
   slope.2.mult<-part.2.slope[4]
+  
+  #generate coordinate matrix depending on the number of groups
+  if (length(spacegroups)==1){
+    spacegroup1<-round(runif(min=0.51, max=spacegroups+0.49, n=obs/dayreps))
+    x.coord1<-numeric(length=obs/dayreps)
+    y.coord1<-numeric(length=obs/dayreps)
+    spacegroup1.mean.x<-runif(spacegroups, 0, area.x)
+    spacegroup1.mean.y<-runif(spacegroups, 0, area.y)
+    for(f in 1:spacegroups){
+      x.coord1[which(spacegroup1==f)]<-rnorm(length(spacegroup1[which(spacegroup1==f)]), spacegroup1.mean.x[f], spacegroup.size)
+      y.coord1[which(spacegroup1==f)]<-rnorm(length(spacegroup1[which(spacegroup1==f)]), spacegroup1.mean.y[f], spacegroup.size)
+    }
+    x.coord1<-rep(x.coord1,dayreps)
+    y.coord1<-rep(y.coord1,dayreps)
+    
+    
+    #matrix of relative distances 1
+    distance1<-matrix(ncol=obs, nrow=obs)
+    for (id1 in 1:obs){
+      for(id2 in 1:obs){
+        distance1[id1,id2]<-((x.coord1[id1]-x.coord1[id2])^2+(y.coord1[id1]-y.coord1[id2])^2)^0.5
+      }
+    }
+    spacegroup.info<-cbind(group.no=c(1:spacegroups), spacegroup1.mean.x, spacegroup1.mean.y, coord.sd=rep(spacegroup.size, spacegroups))
+    individual.coords1<-cbind(spacegroup1,x.coord1,y.coord1)
+    groupings<-unique(spacegroup1)
+    groupref<-spacegroup1
+  } else {
+    distance1<-matrix(ncol=obs, nrow=obs, rep(1, obs^2))
+  }
+  
+  #repeat for destination coords
+  if (origin.dest==TRUE){
+    spacegroup2<-round(runif(min=0.51, max=spacegroups+0.49, n=obs/dayreps))
+    x.coord2<-numeric(length=obs/dayreps)
+    y.coord2<-numeric(length=obs/dayreps)
+    for(f in 1:spacegroups){
+      x.coord2[which(spacegroup2==f)]<-rnorm(length(spacegroup2[which(spacegroup2==f)]), spacegroup1.mean.x[f], spacegroup.size)
+      y.coord2[which(spacegroup2==f)]<-rnorm(length(spacegroup2[which(spacegroup2==f)]), spacegroup1.mean.y[f], spacegroup.size)
+    }
+    x.coord2<-rep(x.coord2,dayreps)
+    y.coord2<-rep(y.coord2,dayreps)
+    
+    #matrix of relative distances 2
+    distance2<-matrix(ncol=obs, nrow=obs)
+    for (id1 in 1:obs){
+      for(id2 in 1:obs){
+        distance2[id1,id2]<-((x.coord2[id1]-x.coord2[id2])^2+(y.coord2[id1]-y.coord2[id2])^2)^0.5
+      }
+    }
+    individual.coords2<-cbind(spacegroup2,x.coord2,y.coord2)
+    routegroup<-as.factor(paste(spacegroup1, spacegroup2,sep=""))
+    groupings<-unique(routegroup)
+    groupref<-routegroup
+  } else {
+    distance2<-matrix(ncol=obs, nrow=obs, rep(1, obs^2))
+  }
+  
+  #matrix of day differences
+  daynumbers<-rep(c(1:dayreps), n.obs)
+  daynumbers<-daynumbers[order(daynumbers)]
+  days<-matrix(ncol=obs,nrow=obs)
+  for (id1 in 1:obs){
+    for(id2 in 1:obs){
+      days[id1,id2]<-abs(daynumbers[id1]-daynumbers[id2])
+    }
+  }
+  
+  #set group level mean parameter values 
+  if(exists("groupings")==TRUE){
+    eval(parse(text=paste("slope1.groups.num<-" , part.1.slope[1] , "(", length(groupings), "," , part.1.slope[2] , "," , part.1.slope[3] , ")" , sep="")))
+    slope1.groups<-paste(slope1.groups.num, "*", slope.1.mult, "*t", sep="")
+    eval(parse(text=paste("slope2.groups.num<-" , part.2.slope[1] , "(", length(groupings), "," , part.2.slope[2] , "," , part.2.slope[3] , ")" , sep="")))
+    slope2.groups<-paste(slope2.groups.num, "*", slope.2.mult, "*t", sep="") 
+    slope1.funct.groups<-list(length=length(slope1.groups))
+    slope2.funct.groups<-list(length=length(slope2.groups))
+    for (i in 1:length(slope2.groups)){
+      eval(parse(text=paste("slope2.funct.groups[[i]]<-as.function(alist(t=, ", slope2.groups[i],"))", sep="")))
+      eval(parse(text=paste("slope1.funct.groups[[i]]<-as.function(alist(t=, ", slope1.groups[i],"))", sep="")))
+    }
+    
+    eval(parse(text=paste("jumptime.groups<-" , time.step.change[1] , "(", length(groupings), "," , time.step.change[2] , "," , time.step.change[3] , ")" , sep="")))
+    eval(parse(text=paste("errorsd.groups<-" , sd.error[1] , "(", length(groupings), "," , sd.error[2] , "," , sd.error[3] , ")" , sep="")))
+    errorsd.groups<-abs(errorsd.groups)
+    
+    if (length(part.2.average)==0 | (length(part.2.average)>0 && length(part.1.average)>0 && length(value.step.change)>0)) {
+      eval(parse(text=paste("jumpval.groups<-" , value.step.change[1] , "(", length(groupings), "," , value.step.change[2] , "," , value.step.change[3] , ")" , sep="")))
+      eval(parse(text=paste("average1.groups<-" , part.1.average[1] , "(", length(groupings), "," , part.1.average[2] , "," , part.1.average[3] , ")" , sep=""))) 
+      intercept.2.groups<-numeric(length=length(groupings))
+      true.start.groups<-numeric(length=length(groupings))
+      average2.groups<-numeric(length=length(groupings))
+      for (i in 1:length(groupings)){
+        true.start.groups[i]<-(average1.groups[i]*jumptime.groups[i]-integrate(slope1.funct.groups[[i]], lower=0, upper=jumptime.groups[i])$value)/jumptime.groups[i]
+        intercept.2.groups[i]<-slope1.funct.groups[[i]](jumptime.groups[i])+true.start.groups[i]+jumpval.groups[i]-slope2.funct.groups[[i]](jumptime.groups[i])
+        average2.groups[i]<-(integrate(slope2.funct.groups[[i]], upper=maxt, lower=jumptime.groups[i])$value+intercept.2.groups[i]*(maxt-jumptime.groups[i]))/(maxt-jumptime.groups[i])
+      }
+      
+    }
+    if (length(part.1.average)==0) {
+      eval(parse(text=paste("jumpval.groups<-" , value.step.change[1] , "(", length(groupings), "," , value.step.change[2] , "," , value.step.change[3] , ")" , sep="")))
+      eval(parse(text=paste("average2.groups<-" , part.2.average[1] , "(", length(groupings), "," , part.2.average[2] , "," , part.2.average[3] , ")" , sep=""))) 
+      intercept.2.groups<-numeric(length=length(groupings))
+      true.start.groups<-numeric(length=length(groupings))
+      average1.groups<-numeric(length=length(groupings))
+      for (i in 1:length(groupings)){
+        intercept.2.groups[i]<-(average2.groups*(maxt-jumptime.groups[i])-integrate(slope2.funct.groups[[i]], lower=jumptime.groups[i], upper=maxt)$value)/(maxt-jumptime.groups[i])
+        true.start.groups[i]<-slope2.funct.groups[[i]](jumptime.groups[i])+intercept.2.groups[i]-jumpval.groups[i]-slope1.funct.groups[[i]](jumptime.groups[i])
+        average1.groups[i]<-(integrate(slope1.funct.groups[[i]], upper=jumptime.groups[i], lower=0)$value+true.start.groups[i]*jumptime.groups[i])/jumptime.groups[i]
+      }
+    }
+    if (length(value.step.change)==0){
+      eval(parse(text=paste("average1.groups<-" , part.1.average[1] , "(", length(groupings), "," , part.1.average[2] , "," , part.1.average[3] , ")" , sep=""))) 
+      eval(parse(text=paste("average2.groups<-" , part.2.average[1] , "(", length(groupings), "," , part.2.average[2] , "," , part.2.average[3] , ")" , sep=""))) 
+      intercept.2.groups<-numeric(length=length(groupings))
+      true.start.groups<-numeric(length=length(groupings))
+      jumpval.groups<-numeric(length=length(groupings))
+      for (i in 1:length(groupings)){
+        true.start.groups[i]<-(average1.groups[i]*jumptime.groups[i]-integrate(slope1.funct.groups[[i]], lower=0, upper=jumptime.groups[i])$value)/jumptime.groups[i]
+        intercept.2.groups[i]<-(average2.groups*(maxt-jumptime.groups[i])-integrate(slope2.funct.groups[[i]], lower=jumptime.groups[i], upper=maxt)$value)/(maxt-jumptime.groups[i])
+        jumpval.groups.groups[i]<-slope2.funct.groups[[i]](jumptime.groups[i])+intercept.2.groups[i]-slope1.funct.groups[[i]](jumptime.groups[i])-true.start.groups[i]
+      }
+    }
+    #record group values
+    group.info<-data.frame(cbind(groupings, average1.groups, average2.groups, slope1.groups, slope2.groups, jumptime.groups, jumpval.groups))
+    
+    #set true parameter values for individuals
+    #set up vectors
+    slope1<-character(length=obs)
+    slope2<-character(length=obs)
+    slope1.funct<-list(length=obs)
+    slope2.funct<-list(length=obs)
+    jumptime<-numeric(length=obs)
+    errorsd<-numeric(length=obs)
+    jumpval<-numeric(length=obs)
+    average1<-numeric(length=obs)
+    true.start<-numeric(length=obs)
+    intercept.2<-numeric(length=obs)
+    average2<-numeric(length=obs)
+    
+    for(q in 1:length(groupings)){
+      number<-length(which(groupref==q))
+      eval(parse(text=paste("slope1[which(groupref==q)]<-as.character(" , part.1.slope[1] , "(", number, "," , slope1.groups.num[q] , "," , as.numeric(part.1.slope[3])*sd.ratio , "))" , sep="")))
+      slope1[which(groupref==q)]<-paste(slope1[which(groupref==q)], "*", slope.1.mult, "*t", sep="")
+      eval(parse(text=paste("slope2[which(groupref==q)]<-as.character(" , part.2.slope[1] , "(", number, "," , slope2.groups.num[q] , "," , as.numeric(part.2.slope[3])*sd.ratio , "))" , sep="")))
+      slope2[which(groupref==q)]<-paste(slope2[which(groupref==q)], "*", slope.2.mult, "*t", sep="") 
+      for (i in which(groupref==q)){
+        eval(parse(text=paste("slope2.funct[[i]]<-as.function(alist(t=, ", slope2[i],"))", sep="")))
+        eval(parse(text=paste("slope1.funct[[i]]<-as.function(alist(t=, ", slope1[i],"))", sep="")))
+      }
+      eval(parse(text=paste("jumptime[which(groupref==q)]<-" , time.step.change[1] , "(", number, "," , jumptime.groups[q] , "," , as.numeric(time.step.change[3])*sd.ratio , ")" , sep="")))
+      eval(parse(text=paste("errorsd[which(groupref==q)]<-abs(" , sd.error[1] , "(", number, "," , sd.error[2] , "," , sd.error[3] , "))" , sep="")))
+      
+      if (length(part.2.average)==0 | (length(part.2.average)>0 && length(part.1.average)>0 && length(value.step.change)>0)) {
+        eval(parse(text=paste("jumpval[which(groupref==q)]<-" , value.step.change[1] , "(", number, "," , jumpval.groups[q] , "," , as.numeric(value.step.change[3])*sd.ratio , ")" , sep="")))
+        eval(parse(text=paste("average1[which(groupref==q)]<-" , part.1.average[1] , "(", number, "," , average1.groups[q] , "," , as.numeric(part.1.average[3])*sd.ratio , ")" , sep=""))) 
+        for (i in which(groupref==q)){
+          true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i])$value)/jumptime[i]
+          intercept.2[i]<-slope1.funct[[i]](jumptime[i])+true.start[i]+jumpval[i]-slope2.funct[[i]](jumptime[i])
+          average2[i]<-(integrate(slope2.funct[[i]], upper=maxt, lower=jumptime[i])$value+intercept.2[i]*(maxt-jumptime[i]))/(maxt-jumptime[i])
+        }
+        
+      }
+      if (length(part.1.average)==0) {
+        eval(parse(text=paste("jumpval[which(groupref==q)]<-" , value.step.change[1] , "(", number, "," , jumpval.groups[q] , "," , as.numeric(value.step.change[3])*sd.ratio, ")" , sep="")))
+        eval(parse(text=paste("average2[which(groupref==q)]<-" , part.2.average[1] , "(", number, "," , average2.groups[q] , "," , as.numeric(part.2.average[3])*sd.ratio , ")" , sep=""))) 
+        for (i in which(groupref==q)){
+          intercept.2[i]<-(average2*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt)$value)/(maxt-jumptime[i])
+          true.start[i]<-slope2.funct[[i]](jumptime[i])+intercept.2[i]-jumpval[i]-slope1.funct[[i]](jumptime[i])
+          average1[i]<-(integrate(slope1.funct[[i]], upper=jumptime[i], lower=0)$value+true.start[i]*jumptime[i])/jumptime[i]
+        }
+      }
+      if (length(value.step.change)==0){
+        eval(parse(text=paste("average1[which(groupref==q)]<-" , part.1.average[1] , "(", number, "," , average1.groups[q] , "," , as.numeric(part.1.average[3])*sd.ratio , ")" , sep=""))) 
+        eval(parse(text=paste("average2[which(groupref==q)]<-" , part.2.average[1] , "(", number, "," , average2.groups[q] , "," , as.numeric(part.2.average[3])*sd.ratio , ")" , sep=""))) 
+        for (i in which(groupref==q)){
+          true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i])$value)/jumptime[i]
+          intercept.2[i]<-(average2*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt)$value)/(maxt-jumptime[i])
+          jumpval[i]<-slope2.funct[[i]](jumptime[i])+intercept.2[i]-slope1.funct[[i]](jumptime[i])-true.start[i]
+        }
+      }
+    }
+    } else{
   
   #set true parameter values for individuals depending on what has been specified
   eval(parse(text=paste("slope1<-" , part.1.slope[1] , "(", obs, "," , part.1.slope[2] , "," , part.1.slope[3] , ")" , sep="")))
@@ -110,12 +292,9 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       jumpval[i]<-slope2.funct[[i]](jumptime[i])+intercept.2[i]-slope1.funct[[i]](jumptime[i])-true.start[i]
     }
   }
-  
+    }
   #set up more values
-  postjumpt<-ceiling(jumptime)
-  prejumpt<-floor(jumptime)
-  prepostchange<-sapply(1:length(prejumpt), function(x) slope2.funct[[x]](postjumpt[x])+intercept.2[x]-slope1.funct[[x]](prejumpt[x])-true.start[x])
-  
+
   
   #sample measurement times
   
@@ -144,6 +323,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     times<-matrix(data=rep(c(0:maxt), obs), ncol=obs, nrow=maxt+1)
   }
   
+  
   #vector of error values for each measure for each individual together
   sd<-numeric(length=(nrow(times))*obs)
   for (x in 1:(nrow(times))) {
@@ -156,7 +336,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
   phases<-matrix(ncol=obs, nrow=nrow(times))
   for (i in 1:obs){
     for (j in 1:nrow(phases)){
-      if (times[j,i]<=prejumpt[i]){
+      if (times[j,i]<=jumptime[i]){
         phases[j,i]<-1
       } else {
         phases[j,i]<-2
@@ -173,69 +353,6 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       } else {
         value.true[j,i]<-intercept.2[i]+slope2.funct[[i]](times[j,i])
       }
-    }
-  }
-  
-  
-  #generate coordinate matrix depending on the number of groups
-  if (length(spacegroups)==1){
-    spacegroup1<-round(runif(min=0.51, max=spacegroups+0.49, n=obs/dayreps))
-    x.coord1<-numeric(length=obs/dayreps)
-    y.coord1<-numeric(length=obs/dayreps)
-    spacegroup1.mean.x<-runif(spacegroups, 0, area.x)
-    spacegroup1.mean.y<-runif(spacegroups, 0, area.y)
-    for(f in 1:spacegroups){
-      x.coord1[which(spacegroup1==f)]<-rnorm(length(spacegroup1[which(spacegroup1==f)]), spacegroup1.mean.x[f], spacegroup.size)
-      y.coord1[which(spacegroup1==f)]<-rnorm(length(spacegroup1[which(spacegroup1==f)]), spacegroup1.mean.y[f], spacegroup.size)
-    }
-    x.coord1<-rep(x.coord1,dayreps)
-    y.coord1<-rep(y.coord1,dayreps)
-    
-    
-    #matrix of relative distances 1
-    distance1<-matrix(ncol=obs, nrow=obs)
-    for (id1 in 1:obs){
-      for(id2 in 1:obs){
-        distance1[id1,id2]<-((x.coord1[id1]-x.coord1[id2])^2+(y.coord1[id1]-y.coord1[id2])^2)^0.5
-      }
-    }
-    spacegroup.info<-cbind(group.no=c(1:spacegroups), spacegroup1.mean.x, spacegroup1.mean.y, coord.sd=rep(spacegroup.size, spacegroups))
-    individual.coords1<-cbind(spacegroup1,x.coord1,y.coord1)
-  } else {
-    distance1<-matrix(ncol=obs, nrow=obs, rep(1, obs^2))
-  }
-  
-  #repeat for destination coords
-  if (origin.dest==TRUE){
-    spacegroup2<-round(runif(min=0.51, max=spacegroups+0.49, n=obs/dayreps))
-    x.coord2<-numeric(length=obs/dayreps)
-    y.coord2<-numeric(length=obs/dayreps)
-    for(f in 1:spacegroups){
-      x.coord2[which(spacegroup2==f)]<-rnorm(length(spacegroup2[which(spacegroup2==f)]), spacegroup1.mean.x[f], spacegroup.size)
-      y.coord2[which(spacegroup2==f)]<-rnorm(length(spacegroup2[which(spacegroup2==f)]), spacegroup1.mean.y[f], spacegroup.size)
-    }
-    x.coord2<-rep(x.coord2,dayreps)
-    y.coord2<-rep(y.coord2,dayreps)
-    
-    #matrix of relative distances 2
-    distance2<-matrix(ncol=obs, nrow=obs)
-    for (id1 in 1:obs){
-      for(id2 in 1:obs){
-        distance2[id1,id2]<-((x.coord2[id1]-x.coord2[id2])^2+(y.coord2[id1]-y.coord2[id2])^2)^0.5
-      }
-    }
-    individual.coords2<-cbind(spacegroup2,x.coord2,y.coord2)
-  } else {
-    distance2<-matrix(ncol=obs, nrow=obs, rep(1, obs^2))
-  }
-  
-  #matrix of day differences
-  daynumbers<-rep(c(1:dayreps), n.obs)
-  daynumbers<-daynumbers[order(daynumbers)]
-  days<-matrix(ncol=obs,nrow=obs)
-  for (id1 in 1:obs){
-    for(id2 in 1:obs){
-      days[id1,id2]<-abs(daynumbers[id1]-daynumbers[id2])
     }
   }
   
@@ -272,22 +389,52 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
   
   #generate summary stats for each individual
   summary<-data.frame()
+  prejumpt<-numeric(length=obs)
+  postjumpt<-numeric(length=obs)
+  prepostchange<-numeric(length=obs)
   for (i in 1:obs) {
     
-    realpjt<-max(which(times[i,]<=prejumpt[i]))
-    if (realpjt==ncol(times)){
-      mean2<-NA
+    if (jumptime[i]<min(times[i,])){
+
+      prejumpt[i]<-NA
+      postjumpt[i]<-0
+      mean1<-NA
+      realmean1<-NA
       jump<-NA
-    } else {
-      mean2<-mean(as.numeric(value[i, (realpjt+1):ncol(times)], na.rm=TRUE))
-      jump<-value[i, realpjt+1]-value[i, realpjt]
+      prepostchange[i]<-NA
+      postjumpt[i]<-min(times[i,which(times[i,]>jumptime[i])])
+      mean2<-mean(as.numeric(value[i, which(times[i,]>=postjumpt[i])], na.rm=TRUE))
+      realmean2<-(integrate(slope2.funct[[i]], lower=postjumpt[i], upper=maxt)$value+intercept.2[i]*(maxt-postjumpt[i]))/(maxt-postjumpt[i])
+    } else{
+
+      prejumpt[i]<-max(times[i,which(times[i,]<=jumptime[i])])
+      mean1<-mean(as.numeric(value[i, which(times[i,]<=prejumpt[i])], na.rm=TRUE))
+      realmean1<-(integrate(slope1.funct[[i]], lower=0, upper=prejumpt[i])$value+true.start[i]*prejumpt[i])/prejumpt[i]
+      if (jumptime[i]>=max(times[i,])){
+
+        postjumpt<-NA
+        mean2<-NA
+        realmean2<-NA
+        jump<-NA
+        prepostchange<-NA
+      }
+      if (jumptime[i]<max(times[i,])){
+
+        postjumpt[i]<-min(times[i,which(times[i,]>jumptime[i])])
+        prepostchange[i]<-slope2.funct[[i]](postjumpt[i])+intercept.2[i]-slope1.funct[[i]](prejumpt[i])-true.start[i]
+        mean2<-mean(as.numeric(value[i, which(times[i,]>prejumpt[i])], na.rm=TRUE))
+        realmean2<-(integrate(slope2.funct[[i]], lower=postjumpt[i], upper=maxt)$value+intercept.2[i]*(maxt-postjumpt[i]))/(maxt-postjumpt[i])
+        jump<-value[i, which(times[i,]==postjumpt[i])]-value[i, which(times[i,]==prejumpt[i])]
+        
+      }
     }
+    
     summary<-rbind(summary, c(i, 
                               average1[i], 
-                              (integrate(slope1.funct[[i]], lower=0, upper=prejumpt[i])$value+true.start[i]*prejumpt[i])/prejumpt[i], 
-                              mean(as.numeric(value[i, 1:realpjt], na.rm=TRUE)),
+                              realmean1, 
+                              mean1,
                               average2[i],  
-                              (integrate(slope2.funct[[i]], lower=postjumpt[i], upper=maxt)$value+intercept.2[i]*(maxt-postjumpt[i]))/(maxt-postjumpt[i]), 
+                              realmean2, 
                               mean2,
                               jumptime[i], 
                               jumpval[i], 
@@ -312,22 +459,41 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     value$id<-rep(c(1:n.obs), dayreps)
     value$idday<-as.factor(paste(value$id, value$daynumbers, sep=":"))
   }
+  if(exists("groupings")==T){
+    value<-cbind(value, groupref)
+  }
   colnames(value)[4]<-c("time")
   value<-value[order(value$id, value$meas.no),]
   #plots and stuff
   if (obs>10){
     if(dayreps==1){
+      if(exists("groupings")==T){
+        p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(groupref)))+
+          geom_line(aes(y=value))+
+          geom_point(aes(y=value))+
+          theme(legend.position="none", plot.title=element_text(size=10))+
+          ggtitle("Simulated data patterns")
+      } else{
       p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(id)))+
         geom_line(aes(y=value))+
         geom_point(aes(y=value))+
         theme(legend.position="none", plot.title=element_text(size=10))+
         ggtitle("Simulated data patterns")
+      }
     } else{
+      if(exists("groupings")==T){
+        p0<-ggplot(data=value, aes(x=time, group=idday, colour=as.factor(groupref)))+
+          geom_line(aes(y=value))+
+          geom_point(aes(y=value))+
+          theme(legend.position="none", plot.title=element_text(size=10))+
+          ggtitle("Simulated data patterns")  
+      } else{
       p0<-ggplot(data=value, aes(x=time, group=idday, colour=as.factor(id)))+
         geom_line(aes(y=value))+
         geom_point(aes(y=value))+
         theme(legend.position="none", plot.title=element_text(size=10))+
         ggtitle("Simulated data patterns")  
+      }
     }
   } else {
     if(dayreps==1){
@@ -397,14 +563,16 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
                      plot=summary.plot, 
                      section1.function=slope1.funct, 
                      section2.function=slope2.funct,
-                     coordinates.info=list(spacegroup.info, individual.coords1, individual.coords2))
+                     coordinates.info=list(spacegroup.info, individual.coords1, individual.coords2),
+                     group.info=group.info)
     }else{
       ret.list<-list(data=value, 
                      simulation.summary=summary[,c(1:12)],
                      plot=summary.plot, 
                      section1.function=slope1.funct, 
                      section2.function=slope2.funct,
-                     coordinates.info=list(spacegroup.info, individual.coords1))
+                     coordinates.info=list(spacegroup.info, individual.coords1),
+                     group.info=group.info)
     }
   } else {
     ret.list<-list(data=value, 
