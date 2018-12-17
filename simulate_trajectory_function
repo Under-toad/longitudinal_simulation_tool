@@ -78,9 +78,9 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       }
     }
     spacegroup.info<-cbind(group.no=c(1:spacegroups), spacegroup1.mean.x, spacegroup1.mean.y, coord.sd=rep(spacegroup.size, spacegroups))
-    individual.coords1<-cbind(spacegroup1,x.coord1,y.coord1)
+    individual.coords1<-cbind(id=c(1:n.obs), spacegroup1=spacegroup1[1:n.obs],x.coord1=x.coord1[1:n.obs],y.coord1=y.coord1[1:n.obs])
     groupings<-unique(spacegroup1)
-    groupref<-spacegroup1
+    groupref<-rep(spacegroup1, dayreps)
   } else {
     distance1<-matrix(ncol=obs, nrow=obs, rep(1, obs^2))
   }
@@ -104,10 +104,10 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
         distance2[id1,id2]<-((x.coord2[id1]-x.coord2[id2])^2+(y.coord2[id1]-y.coord2[id2])^2)^0.5
       }
     }
-    individual.coords2<-cbind(spacegroup2,x.coord2,y.coord2)
+    individual.coords2<-cbind(id=c(1:n.obs),spacegroup2=spacegroup2[1:n.obs],x.coord2=x.coord2[1:n.obs],y.coord2=y.coord2[1:n.obs])
     routegroup<-as.numeric(paste(spacegroup1, spacegroup2,sep=""))
     groupings<-unique(routegroup)
-    groupref<-routegroup
+    groupref<-rep(routegroup, dayreps)
   } else {
     distance2<-matrix(ncol=obs, nrow=obs, rep(1, obs^2))
   }
