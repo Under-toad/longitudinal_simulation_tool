@@ -38,6 +38,8 @@ The function `simulate.trajectory` requires the libraries `ggplot2`, `gridExtra`
 |`area.y`|numeric, length=1|no default|Upper bound for y-coordinates of the centre of each spatial group. These will be sampled from a uniform distribution spanning from zero to this value.|
 |`dayreps`|numeric, length=1|`1`|If measurements from 0 to max.time are to be repeated on several days (or years etc) for the same observation units, this specifies the number of repeats.|
 |`dayreps.cor`|numeric, length=1|`0`|Correlation of error terms between observations from the same individual at the same time on different days. An order 1 autocorrelation structure is specified within individuals for each increase in days difference. Must be between -1 and 1.|
+|`sd.ratio`|numeric, length=1|`0.5`|If spatial groups are specified, the ratio of parameter variation (as standard deviation) between spatial groups to that within spatial groups on a given day.|
+|`sd.ratio.day`|numeric, length=1|`0.5`|If spatial groups are specified, the ratio of parameter variation (as standard deviation) between spatial groups to that between different days for the same spatial group.|
 # Output
 The function outputs a list containing 5 elements:
 
