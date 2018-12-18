@@ -147,7 +147,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
   
   daygroups<-rep(c(1:dayreps), length(groupings))
   daygroups2<-daygroups[order(daygroups)]
-  spacedaygroups<-cbind(rep(groupings, dayreps), daygroups2)
+  spacedaygroups<-cbind(spatial.groups=rep(groupings, dayreps), daygroups2)
   groupref<-as.numeric(paste(groupref, daynumbers, sep=""))
   
   #then add this on for each thing
@@ -206,7 +206,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       intercept.2.groups<-numeric(length=length(groupings)*dayreps)
       true.start.groups<-numeric(length=length(groupings)*dayreps)
       jumpval.groups<-numeric(length=length(groupings)*dayreps)
-      for (i in 1:length((groupings)*dayreps)){
+      for (i in 1:(length(groupings)*dayreps)){
         true.start.groups[i]<-(average1.groups[i]*jumptime.groups[i]-integrate(slope1.funct.groups[[i]], lower=0, upper=jumptime.groups[i])$value)/jumptime.groups[i]
         intercept.2.groups[i]<-(average2.groups[i]*(maxt-jumptime.groups[i])-integrate(slope2.funct.groups[[i]], lower=jumptime.groups[i], upper=maxt)$value)/(maxt-jumptime.groups[i])
         jumpval.groups[i]<-slope2.funct.groups[[i]](jumptime.groups[i])+intercept.2.groups[i]-slope1.funct.groups[[i]](jumptime.groups[i])-true.start.groups[i]
