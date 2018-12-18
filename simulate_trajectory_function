@@ -193,7 +193,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       true.start.groups<-numeric(length=length(groupings)*dayreps)
       average1.groups<-numeric(length=length(groupings)*dayreps)
       for (i in 1:(length(groupings)*dayreps)){
-        intercept.2.groups[i]<-(average2.groups*(maxt-jumptime.groups[i])-integrate(slope2.funct.groups[[i]], lower=jumptime.groups[i], upper=maxt)$value)/(maxt-jumptime.groups[i])
+        intercept.2.groups[i]<-(average2.groups[i]*(maxt-jumptime.groups[i])-integrate(slope2.funct.groups[[i]], lower=jumptime.groups[i], upper=maxt)$value)/(maxt-jumptime.groups[i])
         true.start.groups[i]<-slope2.funct.groups[[i]](jumptime.groups[i])+intercept.2.groups[i]-jumpval.groups[i]-slope1.funct.groups[[i]](jumptime.groups[i])
         average1.groups[i]<-(integrate(slope1.funct.groups[[i]], upper=jumptime.groups[i], lower=0)$value+true.start.groups[i]*jumptime.groups[i])/jumptime.groups[i]
       }
@@ -208,8 +208,8 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       jumpval.groups<-numeric(length=length(groupings)*dayreps)
       for (i in 1:length((groupings)*dayreps)){
         true.start.groups[i]<-(average1.groups[i]*jumptime.groups[i]-integrate(slope1.funct.groups[[i]], lower=0, upper=jumptime.groups[i])$value)/jumptime.groups[i]
-        intercept.2.groups[i]<-(average2.groups*(maxt-jumptime.groups[i])-integrate(slope2.funct.groups[[i]], lower=jumptime.groups[i], upper=maxt)$value)/(maxt-jumptime.groups[i])
-        jumpval.groups.groups[i]<-slope2.funct.groups[[i]](jumptime.groups[i])+intercept.2.groups[i]-slope1.funct.groups[[i]](jumptime.groups[i])-true.start.groups[i]
+        intercept.2.groups[i]<-(average2.groups[i]*(maxt-jumptime.groups[i])-integrate(slope2.funct.groups[[i]], lower=jumptime.groups[i], upper=maxt)$value)/(maxt-jumptime.groups[i])
+        jumpval.groups[i]<-slope2.funct.groups[[i]](jumptime.groups[i])+intercept.2.groups[i]-slope1.funct.groups[[i]](jumptime.groups[i])-true.start.groups[i]
       }
     }
     #record group values
@@ -261,7 +261,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
         eval(parse(text=paste("jumpval[which(groupref==q)]<-" , value.step.change[1] , "(", number, "," , jumpval.groups[which(groupings==q)] , "," , as.numeric(value.step.change[3])*sd.ratio, ")" , sep="")))
         eval(parse(text=paste("average2[which(groupref==q)]<-" , part.2.average[1] , "(", number, "," , average2.groups[which(groupings==q)] , "," , as.numeric(part.2.average[3])*sd.ratio , ")" , sep=""))) 
         for (i in which(groupref==q)){
-          intercept.2[i]<-(average2*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt)$value)/(maxt-jumptime[i])
+          intercept.2[i]<-(average2[i]*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt)$value)/(maxt-jumptime[i])
           true.start[i]<-slope2.funct[[i]](jumptime[i])+intercept.2[i]-jumpval[i]-slope1.funct[[i]](jumptime[i])
           average1[i]<-(integrate(slope1.funct[[i]], upper=jumptime[i], lower=0)$value+true.start[i]*jumptime[i])/jumptime[i]
         }
@@ -271,7 +271,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
         eval(parse(text=paste("average2[which(groupref==q)]<-" , part.2.average[1] , "(", number, "," , average2.groups[which(groupings==q)] , "," , as.numeric(part.2.average[3])*sd.ratio , ")" , sep=""))) 
         for (i in which(groupref==q)){
           true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i])$value)/jumptime[i]
-          intercept.2[i]<-(average2*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt)$value)/(maxt-jumptime[i])
+          intercept.2[i]<-(average2[i]*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt)$value)/(maxt-jumptime[i])
           jumpval[i]<-slope2.funct[[i]](jumptime[i])+intercept.2[i]-slope1.funct[[i]](jumptime[i])-true.start[i]
         }
       }
