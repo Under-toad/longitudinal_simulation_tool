@@ -177,7 +177,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       intercept.2.groups<-numeric(length=length(groupings)*dayreps)
       true.start.groups<-numeric(length=length(groupings)*dayreps)
       average2.groups<-numeric(length=length(groupings)*dayreps)
-      for (i in 1:length(groupings)*dayreps){
+      for (i in 1:(length(groupings)*dayreps)){
         true.start.groups[i]<-(average1.groups[i]*jumptime.groups[i]-integrate(slope1.funct.groups[[i]], lower=0, upper=jumptime.groups[i])$value)/jumptime.groups[i]
         intercept.2.groups[i]<-slope1.funct.groups[[i]](jumptime.groups[i])+true.start.groups[i]+jumpval.groups[i]-slope2.funct.groups[[i]](jumptime.groups[i])
         average2.groups[i]<-(integrate(slope2.funct.groups[[i]], upper=maxt, lower=jumptime.groups[i])$value+intercept.2.groups[i]*(maxt-jumptime.groups[i]))/(maxt-jumptime.groups[i])
@@ -192,7 +192,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       intercept.2.groups<-numeric(length=length(groupings)*dayreps)
       true.start.groups<-numeric(length=length(groupings)*dayreps)
       average1.groups<-numeric(length=length(groupings)*dayreps)
-      for (i in 1:length(groupings)*dayreps){
+      for (i in 1:(length(groupings)*dayreps)){
         intercept.2.groups[i]<-(average2.groups*(maxt-jumptime.groups[i])-integrate(slope2.funct.groups[[i]], lower=jumptime.groups[i], upper=maxt)$value)/(maxt-jumptime.groups[i])
         true.start.groups[i]<-slope2.funct.groups[[i]](jumptime.groups[i])+intercept.2.groups[i]-jumpval.groups[i]-slope1.funct.groups[[i]](jumptime.groups[i])
         average1.groups[i]<-(integrate(slope1.funct.groups[[i]], upper=jumptime.groups[i], lower=0)$value+true.start.groups[i]*jumptime.groups[i])/jumptime.groups[i]
@@ -206,7 +206,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       intercept.2.groups<-numeric(length=length(groupings)*dayreps)
       true.start.groups<-numeric(length=length(groupings)*dayreps)
       jumpval.groups<-numeric(length=length(groupings)*dayreps)
-      for (i in 1:length(groupings)*dayreps){
+      for (i in 1:length((groupings)*dayreps)){
         true.start.groups[i]<-(average1.groups[i]*jumptime.groups[i]-integrate(slope1.funct.groups[[i]], lower=0, upper=jumptime.groups[i])$value)/jumptime.groups[i]
         intercept.2.groups[i]<-(average2.groups*(maxt-jumptime.groups[i])-integrate(slope2.funct.groups[[i]], lower=jumptime.groups[i], upper=maxt)$value)/(maxt-jumptime.groups[i])
         jumpval.groups.groups[i]<-slope2.funct.groups[[i]](jumptime.groups[i])+intercept.2.groups[i]-slope1.funct.groups[[i]](jumptime.groups[i])-true.start.groups[i]
