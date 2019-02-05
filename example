@@ -18,7 +18,8 @@ B <- simulate_trajectory(n.obs=20,
                          area.x=30, 
                          area.y=30, 
                          sd.ratio=0.5,
-                         sd.ratio.day=0.5)
+                         sd.ratio.day=0.5,
+                         plot=F)
 
 #To see coordinates
 coords<-data.frame(cbind(B$coordinates.info[[2]], B$coordinates.info[[3]]))
