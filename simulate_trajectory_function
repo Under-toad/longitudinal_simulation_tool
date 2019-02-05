@@ -131,10 +131,10 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       jumpval.day<-rnorm(dayreps, 0, as.numeric(value.step.change[3])*sd.ratio.day)
     }
     if(length(part.1.average)>0){
-    average1.day<-rnorm(dayreps, 0, as.numeric(part.1.average[3])*sd.ratio.day)
+      average1.day<-rnorm(dayreps, 0, as.numeric(part.1.average[3])*sd.ratio.day)
     }
     if(length(part.2.average)>0){
-    average2.day<-rnorm(dayreps, 0, as.numeric(part.2.average[3])*sd.ratio.day)
+      average2.day<-rnorm(dayreps, 0, as.numeric(part.2.average[3])*sd.ratio.day)
     }
   } else{
     slope1.day<-0
@@ -149,6 +149,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
   daygroups2<-daygroups[order(daygroups)]
   spacedaygroups<-cbind(spatial.groups=rep(groupings, dayreps), daygroups2)
   groupref<-as.numeric(paste(groupref, daynumbers, sep=""))
+  
   
   #then add this on for each thing
   #set group level mean parameter values 
@@ -168,7 +169,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     
     eval(parse(text=paste("jumptime.groups<-" , time.step.change[1] , "(", length(groupings), "," , time.step.change[2] , "," , time.step.change[3] , ")" , sep="")))
     jumptime.groups<-rep(jumptime.groups, dayreps)+rep(jumptime.day,length(groupings))[order(daygroups)]
-
+    
     if (length(part.2.average)==0 | (length(part.2.average)>0 && length(part.1.average)>0 && length(value.step.change)>0)) {
       eval(parse(text=paste("jumpval.groups<-" , value.step.change[1] , "(", length(groupings), "," , value.step.change[2] , "," , value.step.change[3] , ")" , sep="")))
       jumpval.groups<-rep(jumpval.groups, dayreps)+rep(jumpval.day,length(groupings))[order(daygroups)]
@@ -178,9 +179,9 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       true.start.groups<-numeric(length=length(groupings)*dayreps)
       average2.groups<-numeric(length=length(groupings)*dayreps)
       for (i in 1:(length(groupings)*dayreps)){
-        true.start.groups[i]<-(average1.groups[i]*jumptime.groups[i]-integrate(slope1.funct.groups[[i]], lower=0, upper=jumptime.groups[i])$value)/jumptime.groups[i]
+        true.start.groups[i]<-(average1.groups[i]*jumptime.groups[i]-integrate(slope1.funct.groups[[i]], lower=0, upper=jumptime.groups[i] )$value)/jumptime.groups[i]
         intercept.2.groups[i]<-slope1.funct.groups[[i]](jumptime.groups[i])+true.start.groups[i]+jumpval.groups[i]-slope2.funct.groups[[i]](jumptime.groups[i])
-        average2.groups[i]<-(integrate(slope2.funct.groups[[i]], upper=maxt, lower=jumptime.groups[i])$value+intercept.2.groups[i]*(maxt-jumptime.groups[i]))/(maxt-jumptime.groups[i])
+        average2.groups[i]<-(integrate(slope2.funct.groups[[i]], upper=maxt, lower=jumptime.groups[i] )$value+intercept.2.groups[i]*(maxt-jumptime.groups[i]))/(maxt-jumptime.groups[i])
       }
       
     }
@@ -193,9 +194,9 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       true.start.groups<-numeric(length=length(groupings)*dayreps)
       average1.groups<-numeric(length=length(groupings)*dayreps)
       for (i in 1:(length(groupings)*dayreps)){
-        intercept.2.groups[i]<-(average2.groups[i]*(maxt-jumptime.groups[i])-integrate(slope2.funct.groups[[i]], lower=jumptime.groups[i], upper=maxt)$value)/(maxt-jumptime.groups[i])
+        intercept.2.groups[i]<-(average2.groups[i]*(maxt-jumptime.groups[i])-integrate(slope2.funct.groups[[i]], lower=jumptime.groups[i], upper=maxt )$value)/(maxt-jumptime.groups[i])
         true.start.groups[i]<-slope2.funct.groups[[i]](jumptime.groups[i])+intercept.2.groups[i]-jumpval.groups[i]-slope1.funct.groups[[i]](jumptime.groups[i])
-        average1.groups[i]<-(integrate(slope1.funct.groups[[i]], upper=jumptime.groups[i], lower=0)$value+true.start.groups[i]*jumptime.groups[i])/jumptime.groups[i]
+        average1.groups[i]<-(integrate(slope1.funct.groups[[i]], upper=jumptime.groups[i], lower=0 )$value+true.start.groups[i]*jumptime.groups[i])/jumptime.groups[i]
       }
     }
     if (length(value.step.change)==0){
@@ -207,8 +208,8 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       true.start.groups<-numeric(length=length(groupings)*dayreps)
       jumpval.groups<-numeric(length=length(groupings)*dayreps)
       for (i in 1:(length(groupings)*dayreps)){
-        true.start.groups[i]<-(average1.groups[i]*jumptime.groups[i]-integrate(slope1.funct.groups[[i]], lower=0, upper=jumptime.groups[i])$value)/jumptime.groups[i]
-        intercept.2.groups[i]<-(average2.groups[i]*(maxt-jumptime.groups[i])-integrate(slope2.funct.groups[[i]], lower=jumptime.groups[i], upper=maxt)$value)/(maxt-jumptime.groups[i])
+        true.start.groups[i]<-(average1.groups[i]*jumptime.groups[i]-integrate(slope1.funct.groups[[i]], lower=0, upper=jumptime.groups[i] )$value)/jumptime.groups[i]
+        intercept.2.groups[i]<-(average2.groups[i]*(maxt-jumptime.groups[i])-integrate(slope2.funct.groups[[i]], lower=jumptime.groups[i], upper=maxt )$value)/(maxt-jumptime.groups[i])
         jumpval.groups[i]<-slope2.funct.groups[[i]](jumptime.groups[i])+intercept.2.groups[i]-slope1.funct.groups[[i]](jumptime.groups[i])-true.start.groups[i]
       }
     }
@@ -229,7 +230,6 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     true.start<-numeric(length=obs)
     intercept.2<-numeric(length=obs)
     average2<-numeric(length=obs)
-    
     for(q in groupings){
       number<-length(which(groupref==q))
       eval(parse(text=paste("slope1[which(groupref==q)]<-as.character(" , part.1.slope[1] , "(", number, "," , slope1.groups.num[which(groupings==q)] , "," , as.numeric(part.1.slope[3])*sd.ratio , "))" , sep="")))
@@ -251,9 +251,9 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
         eval(parse(text=paste("jumpval[which(groupref==q)]<-" , value.step.change[1] , "(", number, "," , jumpval.groups[which(groupings==q)] , "," , as.numeric(value.step.change[3])*sd.ratio , ")" , sep="")))
         eval(parse(text=paste("average1[which(groupref==q)]<-" , part.1.average[1] , "(", number, "," , average1.groups[which(groupings==q)] , "," , as.numeric(part.1.average[3])*sd.ratio , ")" , sep=""))) 
         for (i in which(groupref==q)){
-          true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i])$value)/jumptime[i]
+          true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i] )$value)/jumptime[i]
           intercept.2[i]<-slope1.funct[[i]](jumptime[i])+true.start[i]+jumpval[i]-slope2.funct[[i]](jumptime[i])
-          average2[i]<-(integrate(slope2.funct[[i]], upper=maxt, lower=jumptime[i])$value+intercept.2[i]*(maxt-jumptime[i]))/(maxt-jumptime[i])
+          average2[i]<-(integrate(slope2.funct[[i]], upper=maxt, lower=jumptime[i] )$value+intercept.2[i]*(maxt-jumptime[i]))/(maxt-jumptime[i])
         }
         
       }
@@ -261,17 +261,17 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
         eval(parse(text=paste("jumpval[which(groupref==q)]<-" , value.step.change[1] , "(", number, "," , jumpval.groups[which(groupings==q)] , "," , as.numeric(value.step.change[3])*sd.ratio, ")" , sep="")))
         eval(parse(text=paste("average2[which(groupref==q)]<-" , part.2.average[1] , "(", number, "," , average2.groups[which(groupings==q)] , "," , as.numeric(part.2.average[3])*sd.ratio , ")" , sep=""))) 
         for (i in which(groupref==q)){
-          intercept.2[i]<-(average2[i]*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt)$value)/(maxt-jumptime[i])
+          intercept.2[i]<-(average2[i]*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt )$value)/(maxt-jumptime[i])
           true.start[i]<-slope2.funct[[i]](jumptime[i])+intercept.2[i]-jumpval[i]-slope1.funct[[i]](jumptime[i])
-          average1[i]<-(integrate(slope1.funct[[i]], upper=jumptime[i], lower=0)$value+true.start[i]*jumptime[i])/jumptime[i]
+          average1[i]<-(integrate(slope1.funct[[i]], upper=jumptime[i], lower=0 )$value+true.start[i]*jumptime[i])/jumptime[i]
         }
       }
       if (length(value.step.change)==0){
         eval(parse(text=paste("average1[which(groupref==q)]<-" , part.1.average[1] , "(", number, "," , average1.groups[which(groupings==q)] , "," , as.numeric(part.1.average[3])*sd.ratio , ")" , sep=""))) 
         eval(parse(text=paste("average2[which(groupref==q)]<-" , part.2.average[1] , "(", number, "," , average2.groups[which(groupings==q)] , "," , as.numeric(part.2.average[3])*sd.ratio , ")" , sep=""))) 
         for (i in which(groupref==q)){
-          true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i])$value)/jumptime[i]
-          intercept.2[i]<-(average2[i]*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt)$value)/(maxt-jumptime[i])
+          true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i] )$value)/jumptime[i]
+          intercept.2[i]<-(average2[i]*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt )$value)/(maxt-jumptime[i])
           jumpval[i]<-slope2.funct[[i]](jumptime[i])+intercept.2[i]-slope1.funct[[i]](jumptime[i])-true.start[i]
         }
       }
@@ -303,9 +303,9 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       true.start<-numeric(length=obs)
       average2<-numeric(length=obs)
       for (i in 1:obs){
-        true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i])$value)/jumptime[i]
+        true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i] )$value)/jumptime[i]
         intercept.2[i]<-slope1.funct[[i]](jumptime[i])+true.start[i]+jumpval[i]-slope2.funct[[i]](jumptime[i])
-        average2[i]<-(integrate(slope2.funct[[i]], upper=maxt, lower=jumptime[i])$value+intercept.2[i]*(maxt-jumptime[i]))/(maxt-jumptime[i])
+        average2[i]<-(integrate(slope2.funct[[i]], upper=maxt, lower=jumptime[i] )$value+intercept.2[i]*(maxt-jumptime[i]))/(maxt-jumptime[i])
       }
       
     }
@@ -316,9 +316,9 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       true.start<-numeric(length=obs)
       average1<-numeric(length=obs)
       for (i in 1:obs){
-        intercept.2[i]<-(average2*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt)$value)/(maxt-jumptime[i])
+        intercept.2[i]<-(average2*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt )$value)/(maxt-jumptime[i])
         true.start[i]<-slope2.funct[[i]](jumptime[i])+intercept.2[i]-jumpval[i]-slope1.funct[[i]](jumptime[i])
-        average1[i]<-(integrate(slope1.funct[[i]], upper=jumptime[i], lower=0)$value+true.start[i]*jumptime[i])/jumptime[i]
+        average1[i]<-(integrate(slope1.funct[[i]], upper=jumptime[i], lower=0 )$value+true.start[i]*jumptime[i])/jumptime[i]
       }
     }
     if (length(value.step.change)==0){
@@ -328,8 +328,8 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       true.start<-numeric(length=obs)
       jumpval<-numeric(length=obs)
       for (i in 1:obs){
-        true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i])$value)/jumptime[i]
-        intercept.2[i]<-(average2*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt)$value)/(maxt-jumptime[i])
+        true.start[i]<-(average1[i]*jumptime[i]-integrate(slope1.funct[[i]], lower=0, upper=jumptime[i] )$value)/jumptime[i]
+        intercept.2[i]<-(average2*(maxt-jumptime[i])-integrate(slope2.funct[[i]], lower=jumptime[i], upper=maxt )$value)/(maxt-jumptime[i])
         jumpval[i]<-slope2.funct[[i]](jumptime[i])+intercept.2[i]-slope1.funct[[i]](jumptime[i])-true.start[i]
       }
     }
@@ -361,7 +361,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     }
   }
   if (length(record.times)==0){
-    times<-matrix(data=rep(c(0:maxt), obs), ncol=obs, nrow=maxt+1)
+    times<-matrix(data=rep(c(1:maxt), obs), ncol=obs, nrow=maxt)
   }
   
   
@@ -445,15 +445,15 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       prepostchange[i]<-NA
       postjumpt[i]<-min(times[i,which(times[i,]>jumptime[i])])
       mean2<-mean(as.numeric(value[i, which(times[i,]>=postjumpt[i])], na.rm=TRUE))
-      realmean2<-(integrate(slope2.funct[[i]], lower=postjumpt[i], upper=maxt)$value+intercept.2[i]*(maxt-postjumpt[i]))/(maxt-postjumpt[i])
+      realmean2<-(integrate(slope2.funct[[i]], lower=postjumpt[i], upper=maxt )$value+intercept.2[i]*(maxt-postjumpt[i]))/(maxt-postjumpt[i])
     } else{
       
       prejumpt[i]<-max(times[i,which(times[i,]<=jumptime[i])])
       mean1<-mean(as.numeric(value[i, which(times[i,]<=prejumpt[i])], na.rm=TRUE))
-      realmean1<-(integrate(slope1.funct[[i]], lower=0, upper=prejumpt[i])$value+true.start[i]*prejumpt[i])/prejumpt[i]
+      realmean1<-(integrate(slope1.funct[[i]], lower=0, upper=prejumpt[i] )$value+true.start[i]*prejumpt[i])/prejumpt[i]
       if (jumptime[i]>=max(times[i,])){
         
-        postjumpt<-NA
+        postjumpt[i]<-NA
         mean2<-NA
         realmean2<-NA
         jump<-NA
@@ -464,7 +464,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
         postjumpt[i]<-min(times[i,which(times[i,]>jumptime[i])])
         prepostchange[i]<-slope2.funct[[i]](postjumpt[i])+intercept.2[i]-slope1.funct[[i]](prejumpt[i])-true.start[i]
         mean2<-mean(as.numeric(value[i, which(times[i,]>prejumpt[i])], na.rm=TRUE))
-        realmean2<-(integrate(slope2.funct[[i]], lower=postjumpt[i], upper=maxt)$value+intercept.2[i]*(maxt-postjumpt[i]))/(maxt-postjumpt[i])
+        realmean2<-(integrate(slope2.funct[[i]], lower=postjumpt[i], upper=maxt )$value+intercept.2[i]*(maxt-postjumpt[i]))/(maxt-postjumpt[i])
         jump<-value[i, which(times[i,]==postjumpt[i])]-value[i, which(times[i,]==prejumpt[i])]
         
       }
@@ -506,9 +506,10 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
   colnames(value)[4]<-c("time")
   value<-value[order(value$id, value$meas.no),]
   #plots and stuff
+  
   if (obs>10){
     if(dayreps==1){
-      if(exists("groupings")==T){
+      if(length(groupings)>1){
         p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(groupref)))+
           geom_line(aes(y=value))+
           geom_point(aes(y=value))+
@@ -522,7 +523,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
           ggtitle("Simulated data patterns")
       }
     } else{
-      if(exists("groupings")==T){
+      if(length(groupings)>1){
         p0<-ggplot(data=value, aes(x=time, group=idday, colour=as.factor(groupref)))+
           geom_line(aes(y=value))+
           geom_point(aes(y=value))+
@@ -538,7 +539,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     }
   } else {
     if(dayreps==1){
-      if(exists("groupings")==T){
+      if(length(groupings)>1){
         p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(groupref)))+
           geom_line(aes(y=value))+
           geom_point(aes(y=value))+
@@ -554,7 +555,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
           ggtitle("Simulated data patterns")
       }
     } else{
-      if(exists("groupings")==T){
+      if(length(groupings)>1){
         p0<-ggplot(data=value, aes(x=time, group=idday, colour=as.factor(groupref)))+
           geom_line(aes(y=value))+
           geom_point(aes(y=value))+
@@ -603,10 +604,9 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     theme(axis.title=element_text(size=10))
   
   summary.plot<-grid.arrange(grobs=list(p3,p6,p7,p8,p0),  layout_matrix=rbind(c(1,1,2,2), c(3,3,4,4), c(5,5,5,5), c(5,5,5,5)))
-  if (plot=TRUE){
+  if(plot==TRUE){
   summary.plot
   }
-  
   #return list of data, summary and plot
   
   slope1<-paste(true.start, "+", slope1, sep="")
