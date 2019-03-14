@@ -27,13 +27,19 @@ The function `simulate.trajectory` requires the libraries `ggplot2`, `gridExtra`
 |`part.2.slope`|character, length=3|`c("rnorm", "0", "1", "1")`|Population distribution of the slope parameter for the second trajectory section. Individual averages will be sampled from this distribution. Takes the form `distribution, parameter1, parameter2, multiplier`. The `multiplier` defaults to 1 and can be specified in terms of `t` (for time) if a non-linear pattern is required, for example, specifying `t` will give a quadratic curve and `t^2` cubic.|
 |`time.step.change`|character, length=3|`c("rnorm", "0", "1", "1")`|Population distribution of the time at which the step change between trajectory sections occurs. Individual averages will be sampled from this distribution. Takes the form `distribution, parameter1, parameter2`.|
 |`value.step.change`|character, length=3|no default|Population distribution of the average value of the step change between trajectory sections. Individual averages will be sampled from this distribution. Takes the form `distribution, parameter1, parameter2`. Two of `part.1.average`, `part.2.average` and `value.step.change` must be specified. If all three are specified, `part.2.average` is ignored.|
-|`sd.error`|character, length=3|`sd.error=c("rlnorm","0.5", "0.5")`|Population distribution of the standard deviation of random error terms for each individual. Individual averages will be sampled from this distribution. Takes the form `distribution, parameter1, parameter2`. The absolute value of any negative values will be used.|
+|`sd.error`|character, length=3|`sd.error=c("rlnorm","0.5", "0.5")`|Population distribution of the standard deviation of total random error terms for each individual. Individual averages will be sampled from this distribution. Takes the form `distribution, parameter1, parameter2`. The absolute value of any negative values will be used.|
 |`between.cor`|numeric, length=1|`0`|Correlation of error terms between individuals at the same time point. Must be between -1 and 1.|
 |`within.cor`|numeric, length=1|`0`|Correlation of error terms within individuals at adjacent time points. An order 1 autocorrelation structure is specified within individuals. Must be between -1 and 1.|
+|`dayreps`|numeric, length=1|`1`|Routes can be measured over the time specified on multiple occasions (for example, different days). This specifies the number of these occasions.|
+|`dayreps.cor`|numeric, length=1|`0`|Error correlation between data measured at the same time on the same route on consecutive days.|
 |`spacegroups`|numeric, length=1|no default|Number of spatial groups or clusters of individuals to be included in the dataset.|
 |`spacegroups.size`|numeric, length=1|no default|The average deviation of the x and y coordinates for an individual in a spatial group from its centre (the distribution of points follows a bivariate normal distribution, this is the standard deviation of both distributions that comprise this).|
+|`origin.dest`|logical, length=1|`FALSE`|If `TRUE`, data will be associated with a 'route' between two spatial points.|
 |`area.x`|numeric, length=1|no default|Upper bound for x-coordinates of the centre of each spatial group. These will be sampled from a uniform distribution spanning from zero to this value.|
 |`area.y`|numeric, length=1|no default|Upper bound for y-coordinates of the centre of each spatial group. These will be sampled from a uniform distribution spanning from zero to this value.|
+|`sd.ratio`|numeric, length=1|`0.5`|Random variation in parameters in different spatial or route groups as a fraction of the random variation in parameters specified in `part.1.average`, `part.1.slope` etc.|
+|`sd.ratio.day`|numeric, length=1|`0.5`|Random variation in parameters on different `dayreps` as a fraction of the random variation in parameters specified in `part.1.average`, `part.1.slope` etc.|
+|`plot`|logical, length=1|`TRUE`|Whether the summary plot is produced.|
 # Output
 The function outputs a list containing 5 elements:
 
