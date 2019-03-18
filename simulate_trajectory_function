@@ -5,7 +5,8 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
                                 sd.error=c("rlnorm","0.5", "0.5"), between.cor=0, within.cor=0,
                                 dayreps=1, dayreps.cor=0,
                                 spacegroups=NULL, spacegroup.size=NULL, 
-                                origin.dest=FALSE, area.x=NULL, area.y=NULL, sd.ratio=0.5, sd.ratio.day=0.5, plot=TRUE){ 
+                                origin.dest=FALSE, area.x=NULL, area.y=NULL, sd.ratio=0.5, 
+                                sd.ratio.day=0.5, plot=TRUE, offset.sd=0){ 
   #load libraries required
   library(ggplot2)
   library(gridExtra)
@@ -55,6 +56,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
   slope.1.mult<-part.1.slope[4]
   slope.2.mult<-part.2.slope[4]
   
+  
   #generate coordinate matrix depending on the number of groups
   if (length(spacegroups)==1){
     spacegroup1<-round(runif(min=0.51, max=spacegroups+0.49, n=obs/dayreps))
@@ -87,13 +89,10 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
   
   #repeat for destination coords
   if (origin.dest==TRUE){
-    spacegroup2<-round(runif(min=0.51, max=spacegroups+0.49, n=obs/dayreps))
-    x.coord2<-numeric(length=obs/dayreps)
-    y.coord2<-numeric(length=obs/dayreps)
-    for(f in 1:spacegroups){
-      x.coord2[which(spacegroup2==f)]<-rnorm(length(spacegroup2[which(spacegroup2==f)]), spacegroup1.mean.x[f], spacegroup.size)
-      y.coord2[which(spacegroup2==f)]<-rnorm(length(spacegroup2[which(spacegroup2==f)]), spacegroup1.mean.y[f], spacegroup.size)
-    }
+    sample<-sample(c(1:(obs/dayreps)), obs/dayreps, replace=T)
+    x.coord2<-x.coord1[sample]
+    y.coord2<-y.coord1[sample]
+    spacegroup2<-spacegroup1[sample]
     x.coord2<-rep(x.coord2,dayreps)
     y.coord2<-rep(y.coord2,dayreps)
     
@@ -239,6 +238,12 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       eval(parse(text=paste("slope2[which(groupref==q)]<-as.character(" , part.2.slope[1] , "(", number, "," , slope2.groups.num[which(groupings==q)] , "," , as.numeric(part.2.slope[3])*sd.ratio , "))" , sep="")))
       
       slope2[which(groupref==q)]<-paste(slope2[which(groupref==q)], "*", slope.2.mult, "*t", sep="") 
+      if (offset.sd>0){
+        offset1<-paste("(t+", rnorm(n=obs, 0, offset.sd), ")", sep="")
+        offset2<-paste("(t+", rnorm(n=obs, 0, offset.sd), ")", sep="")
+        slope1<-mapply(gsub, replacement=offset1, x=slope1, MoreArgs=list(pattern="t"))
+        slope2<-mapply(gsub, replacement=offset2, x=slope2, MoreArgs=list(pattern="t"))
+      }
       for (i in c(which(groupref==q))){
         eval(parse(text=paste("slope2.funct[[i]]<-as.function(alist(t=, ", slope2[i],"))", sep="")))
         eval(parse(text=paste("slope1.funct[[i]]<-as.function(alist(t=, ", slope1[i],"))", sep="")))
@@ -285,6 +290,12 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     slope2<-paste(slope2, "*", slope.2.mult, "*t", sep="") 
     slope1.funct<-vector("list", length(slope1))
     slope2.funct<-vector("list", length(slope2))
+    if (offset.sd>0){
+      offset1<-paste("(t+", rnorm(n=obs, 0, offset.sd), ")", sep="")
+      offset2<-paste("(t+", rnorm(n=obs, 0, offset.sd), ")", sep="")
+      slope1<-mapply(gsub, replacement=offset1, x=slope1, MoreArgs=list(pattern="t"))
+      slope2<-mapply(gsub, replacement=offset2, x=slope2, MoreArgs=list(pattern="t"))
+    }
     for (i in 1:length(slope2)){
       eval(parse(text=paste("slope2.funct[[i]]<-as.function(alist(t=, ", slope2[i],"))", sep="")))
       eval(parse(text=paste("slope1.funct[[i]]<-as.function(alist(t=, ", slope1[i],"))", sep="")))
@@ -605,7 +616,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
   
   summary.plot<-grid.arrange(grobs=list(p3,p6,p7,p8,p0),  layout_matrix=rbind(c(1,1,2,2), c(3,3,4,4), c(5,5,5,5), c(5,5,5,5)))
   if(plot==TRUE){
-  summary.plot
+    summary.plot
   }
   #return list of data, summary and plot
   
