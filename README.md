@@ -40,6 +40,7 @@ The function `simulate.trajectory` requires the libraries `ggplot2`, `gridExtra`
 |`sd.ratio`|numeric, length=1|`0.5`|Random variation in parameters in different spatial or route groups as a fraction of the random variation in parameters specified in `part.1.average`, `part.1.slope` etc.|
 |`sd.ratio.day`|numeric, length=1|`0.5`|Random variation in parameters on different `dayreps` as a fraction of the random variation in parameters specified in `part.1.average`, `part.1.slope` etc.|
 |`plot`|logical, length=1|`TRUE`|Whether the summary plot is produced.|
+|`offset.sd`|numeric, length=1|`0`|Standard deviation of individual level translations in the x-axis, sampled from a normal distribution with mean 0.|
 # Output
 The function outputs a list containing 5 elements:
 
