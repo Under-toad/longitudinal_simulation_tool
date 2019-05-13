@@ -1,4 +1,4 @@
-coords1<-cbind(rep(1,10), rnorm(10,1,5), rnorm(10,1,5))
+coords1<-cbind(c(1,1,1,1,1,2,2,2,2,2), rnorm(10,1,5), rnorm(10,1,5))
 coords1<-cbind(coords1, coords1[sample(c(1:10), 10, replace=T),])
 
 B <- simulate_trajectory(n.obs=10, 
@@ -23,7 +23,7 @@ B <- simulate_trajectory(n.obs=10,
                          area.y=30, 
                          sd.ratio=0.5,
                          sd.ratio.day=0.5,
-                         plot=T, offset.sd=4)
+                         plot=T, offset.amount=4)
 
 #To see coordinates
 coords<-data.frame(cbind(B$coordinates.info[[2]], B$coordinates.info[[3]]))
@@ -33,4 +33,3 @@ plot.coords<-data.frame(cbind(id=rep(coords$id, 2), x.coords=c(coords$x.coord1,c
 ggplot(data=data.frame(plot.coords), aes(x=x.coords, y=y.coords, colour=as.factor(routegroup), group=as.factor(id), shape=as.factor(origin)))+
   geom_point()+
   geom_line()
-
