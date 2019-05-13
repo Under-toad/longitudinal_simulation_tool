@@ -6,7 +6,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
                                 dayreps=1, dayreps.cor=0, fixed.spacegroups=NULL,
                                 spacegroups=NULL, spacegroup.size=NULL, 
                                 origin.dest=FALSE, area.x=NULL, area.y=NULL, sd.ratio=0.5, 
-                                sd.ratio.day=0.5, plot=TRUE, offset.sd=0){ 
+                                sd.ratio.day=0.5, plot=TRUE, offset.amount=0){ 
   #load libraries required
   library(ggplot2)
   library(gridExtra)
@@ -281,6 +281,13 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     group.info<-data.frame(cbind(spacedaygroups, average1.groups, average2.groups, slope1.groups, slope2.groups, jumptime.groups, jumpval.groups))
     
     groupings<-as.numeric(paste(spacedaygroups[,1], spacedaygroups[,2], sep=""))
+    if(offset.amount>0){
+      if(length(groupings)>1){
+        offset.sd<-rnorm(length(groupings), 0, offset.amount)
+      } else{
+        offset.sd<-0
+      }
+    }
     #set true parameter values for individuals
     #set up vectors
     slope1<-character(length=obs)
@@ -303,9 +310,9 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
       eval(parse(text=paste("slope2[which(groupref==q)]<-as.character(" , part.2.slope[1] , "(", number, "," , slope2.groups.num[which(groupings==q)] , "," , as.numeric(part.2.slope[3])*sd.ratio , "))" , sep="")))
       
       slope2[which(groupref==q)]<-paste(slope2[which(groupref==q)], "*", slope.2.mult, "*t", sep="") 
-      if (offset.sd>0){
-        offset1<-paste("(t+", rnorm(n=obs, 0, offset.sd), ")", sep="")
-        offset2<-paste("(t+", rnorm(n=obs, 0, offset.sd), ")", sep="")
+      if (offset.sd[groupings==q]>0){
+        offset1<-paste("(t+", rnorm(n=obs, 0, offset.sd[groupings==q]), ")", sep="")
+        offset2<-paste("(t+", rnorm(n=obs, 0, offset.sd[groupings==q]), ")", sep="")
         slope1<-mapply(gsub, replacement=offset1, x=slope1, MoreArgs=list(pattern="t"))
         slope2<-mapply(gsub, replacement=offset2, x=slope2, MoreArgs=list(pattern="t"))
       }
@@ -355,9 +362,9 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     slope2<-paste(slope2, "*", slope.2.mult, "*t", sep="") 
     slope1.funct<-vector("list", length(slope1))
     slope2.funct<-vector("list", length(slope2))
-    if (offset.sd>0){
-      offset1<-paste("(t+", rnorm(n=obs, 0, offset.sd), ")", sep="")
-      offset2<-paste("(t+", rnorm(n=obs, 0, offset.sd), ")", sep="")
+    if (offset.sd[groupings==q]>0){
+      offset1<-paste("(t+", rnorm(n=obs, 0, offset.sd[groupings==q]), ")", sep="")
+      offset2<-paste("(t+", rnorm(n=obs, 0, offset.sd[groupings==q]), ")", sep="")
       slope1<-mapply(gsub, replacement=offset1, x=slope1, MoreArgs=list(pattern="t"))
       slope2<-mapply(gsub, replacement=offset2, x=slope2, MoreArgs=list(pattern="t"))
     }
