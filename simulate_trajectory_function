@@ -169,13 +169,15 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
         }
       }
       individual.coords2<-cbind(id=c(1:n.obs),spacegroup2=spacegroup2[1:n.obs],x.coord2=x.coord2[1:n.obs],y.coord2=y.coord2[1:n.obs])
-      if(spacegroup1!=spacegroup2){
+      if(isFALSE(all.equal(spacegroup1, spacegroup2))){
         routegroup<-as.numeric(paste(spacegroup1, spacegroup2,sep=""))
+        groupref<-rep(routegroup, dayreps)
+        groupings<-unique(routegroup)
       } else {
         routegroup<-spacegroup1
       }
-      groupings<-unique(routegroup)
-      groupref<-rep(routegroup, dayreps)
+      
+      
     } else {
       distance2<-matrix(ncol=obs, nrow=obs, rep(1, obs^2))
     }
@@ -704,7 +706,7 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
     eval(parse(text=paste("slope2.funct[[i]]<-as.function(alist(t=, ", slope2[i],"))", sep="")))
     eval(parse(text=paste("slope1.funct[[i]]<-as.function(alist(t=, ", slope1[i],"))", sep="")))
   }
-  if (length(spacegroups==1)){
+  if (length(spacegroups==1) | is.null(fixed.spacegroups)==F){
     if (origin.dest==TRUE){
       ret.list<-list(data=value, 
                      simulation.summary=summary[,c(1:12)],
