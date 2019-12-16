@@ -169,12 +169,12 @@ simulate_trajectory <- function(n.obs=1 , max.time=10 , record.times=NULL, recor
         }
       }
       individual.coords2<-cbind(id=c(1:n.obs),spacegroup2=spacegroup2[1:n.obs],x.coord2=x.coord2[1:n.obs],y.coord2=y.coord2[1:n.obs])
-      if(isFALSE(all.equal(spacegroup1, spacegroup2))){
+      if(identical(spacegroup1, spacegroup2)){
+        routegroup<-spacegroup1
+      } else {
         routegroup<-as.numeric(paste(spacegroup1, spacegroup2,sep=""))
         groupref<-rep(routegroup, dayreps)
         groupings<-unique(routegroup)
-      } else {
-        routegroup<-spacegroup1
       }
       
       
