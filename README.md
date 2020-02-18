@@ -42,7 +42,7 @@ The function `simulate.trajectory` requires the libraries `ggplot2`, `gridExtra`
 |`plot`|logical, length=1|`TRUE`|Whether the summary plot is produced.|
 |`offset.sd`|numeric, length=1|`0`|Standard deviation of individual level translations in the x-axis, sampled from a normal distribution with mean 0.|
 # Output
-The function outputs a list containing 5 elements:
+The function outputs a list containing a maximum of 7 elements:
 
 |Element|Description|
 |---|---|
@@ -52,6 +52,7 @@ The function outputs a list containing 5 elements:
 |`section1.function`|Individual functions specified for first trajectory section (including multiplier)|
 |`section2.function`|Individual functions specified for second trajectory section (including multiplier)|
 |`coordinates.info`|Contains two parts. The first contains central coordinates for each spatial group. The second contains individual level coordinates and spatial group membership.|
+|`group.info`	|Data frame containing information about the average parameter values in spatial and day groups.|
 # Warning messages
 Common warning messages include the following:
 
