@@ -32,15 +32,16 @@ The function `simulate.trajectory` requires the libraries `ggplot2`, `gridExtra`
 |`within.cor`|numeric, length=1|`0`|Correlation of error terms within individuals at adjacent time points. An order 1 autocorrelation structure is specified within individuals. Must be between -1 and 1.|
 |`dayreps`|numeric, length=1|`1`|Routes can be measured over the time specified on multiple occasions (for example, different days). This specifies the number of these occasions.|
 |`dayreps.cor`|numeric, length=1|`0`|Error correlation between data measured at the same time on the same route on consecutive days.|
+|`fixed.spacegroups`|	Matrix or data frame with 3 or 6 columns	|`NULL`	|Specify this if you wish the observations to be in pre-specified spatial groups. Matrix/data frame columns specify: Group 1 ID, Group 1 X coordinate, Group 1 Y coordinate, Group 2 ID, Group 2 X coordinate, Group 2 Y coordinate. If two groups (6 columns) are specified, origin-destination data will be produced, if 3 columns are specified it will not (this will override the specification of `origin.dest`). The length of the matrix/data frame must be equal to `n.obs`.|
 |`spacegroups`|numeric, length=1|no default|Number of spatial groups or clusters of individuals to be included in the dataset.|
 |`spacegroups.size`|numeric, length=1|no default|The average deviation of the x and y coordinates for an individual in a spatial group from its centre (the distribution of points follows a bivariate normal distribution, this is the standard deviation of both distributions that comprise this).|
 |`origin.dest`|logical, length=1|`FALSE`|If `TRUE`, data will be associated with a 'route' between two spatial points.|
 |`area.x`|numeric, length=1|no default|Upper bound for x-coordinates of the centre of each spatial group. These will be sampled from a uniform distribution spanning from zero to this value.|
 |`area.y`|numeric, length=1|no default|Upper bound for y-coordinates of the centre of each spatial group. These will be sampled from a uniform distribution spanning from zero to this value.|
-|`sd.ratio`|numeric, length=1|`0.5`|Random variation in parameters in different spatial or route groups as a fraction of the random variation in parameters specified in `part.1.average`, `part.1.slope` etc.|
-|`sd.ratio.day`|numeric, length=1|`0.5`|Random variation in parameters on different `dayreps` as a fraction of the random variation in parameters specified in `part.1.average`, `part.1.slope` etc.|
+|`sd.ratio`|numeric, length=1|`0.5`|Used to specify the amount of random variation in parameters between spatial groups. The standard deviation for this spatial-group-related variation is specified as a fraction of the random variation already introduced to the parameters (the third argument for each of `part.1.average`, `part.1.slope etc`.)|
+|`sd.ratio.day`|numeric, length=1|`0.5`|Used to specify the amount of random variation in parameters between each `dayrep` specified. The standard deviation for this date-related variation is specified as a fraction of the random variation already introduced to the parameters (the third argument for each of `part.1.average`, `part.1.slope` etc.)|
 |`plot`|logical, length=1|`TRUE`|Whether the summary plot is produced.|
-|`offset.sd`|numeric, length=1|`0`|Standard deviation of individual level translations in the x-axis, sampled from a normal distribution with mean 0.|
+|`offset.amount`|numeric, length=1|`0`|For specifying a horizontal offset for each spatial group. Each group will be offset by a value sampled from a normal distribution with mean `0` and standard deviation `offset.amount` with some random within-group variation around this value.|
 # Output
 The function outputs a list containing 5 elements:
 
