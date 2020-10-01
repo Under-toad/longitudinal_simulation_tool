@@ -13,7 +13,6 @@ simulate_trajectory <- function(n.obs=1 ,
                                 within.cor=0,
                                 dayreps=1, 
                                 dayreps.cor=0, 
-                                no.day.var=F, 
                                 fixed.spacegroups=NULL,
                                 fixed.effect.part.1.slope=NULL,
                                 spacegroups=NULL, 
@@ -310,7 +309,11 @@ simulate_trajectory <- function(n.obs=1 ,
     groupings<-as.numeric(paste(spacedaygroups[,1], spacedaygroups[,2], sep=""))
     if(offset.amount>0){
       if(length(groupings)>1){
-        offset.sd<-rnorm(length(groupings), 0, offset.amount)
+        if(sd.ratio.day!=0){
+          offset.sd<-rnorm(length(groupings), 0, offset.amount)
+        } else{
+          offset.sd<-rep(rnorm(length(groupings)/dayreps, 0, offset.amount), dayreps)
+        }
         group.info$slope1.groups<-mapply(gsub, replacement=paste("(t+",offset.sd,")",sep=""), x=group.info$slope1.groups, MoreArgs=list(pattern="t"))
         group.info$slope2.groups<-mapply(gsub, replacement=paste("(t+",offset.sd,")",sep=""), x=group.info$slope2.groups, MoreArgs=list(pattern="t"))
         group.info$offset.sd<-offset.sd
@@ -393,25 +396,6 @@ simulate_trajectory <- function(n.obs=1 ,
           jumpval[i]<-slope2.funct[[i]](jumptime[i])+intercept.2[i]-slope1.funct[[i]](jumptime[i])-true.start[i]
         }
       }
-    }
-    if(no.day.var==T){
-      slope1<-rep(slope1[1:n.obs], dayreps)
-      slope2<-rep(slope2[1:n.obs], dayreps)
-      offset.sd<-rep(offset.sd[1:n.obs], dayreps)
-      for(i in 2:dayreps){
-        for(j in 1:n.obs){
-          slope1.funct[[n.obs*(i-1)+j]]<-slope1.funct[[j]]
-          slope2.funct[[n.obs*(i-1)+j]]<-slope2.funct[[j]]
-          
-        }
-      }
-      jumptime<-rep(jumptime[1:n.obs], dayreps)
-      errorsd<-rep(errorsd[1:n.obs], dayreps)
-      jumpval<-rep(jumpval[1:n.obs], dayreps)
-      average1<-rep(average1[1:n.obs], dayreps)
-      true.start<-rep(true.start[1:n.obs], dayreps)
-      intercept.2<-rep(intercept.2[1:n.obs], dayreps)
-      average2<-rep(average2[1:n.obs], dayreps)
     }
   } 
   if(exists("groupings")==FALSE){ #if no spatial groupings specified
@@ -792,7 +776,8 @@ simulate_trajectory <- function(n.obs=1 ,
                      section1.function=slope1.funct, 
                      section2.function=slope2.funct,
                      coordinates.info=list(spacegroup.info, individual.coords1),
-                     group.info=group.info, distmat=distance1)
+                     group.info=group.info, 
+                     distmat=distance1)
     }
   } else {
     ret.list<-list(data=value, 
