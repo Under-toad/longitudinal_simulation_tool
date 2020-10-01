@@ -91,7 +91,7 @@ The following function call simulates data for 50 individuals over 30 time point
                          sd.ratio=0.5,
                          offset.amount=0)`
 
-![Graphs produced by example code](https://github.com/sarahcgadd/longitudinal_simulation_tool/Longsimplot.png)
+![Graphs produced by example code](https://github.com/sarahcgadd/longitudinal_simulation_tool/blob/master/Longsimplot.png)
 
 
 # Limitations
