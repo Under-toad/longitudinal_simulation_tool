@@ -22,7 +22,7 @@ simulate_trajectory <- function(n.obs=1 ,
                                 area.y=NULL, 
                                 sd.ratio=0.5, 
                                 sd.ratio.day=0.5, 
-                                plot=TRUE, 
+                                print.plot=TRUE, 
                                 offset.amount=0){ 
   #load libraries required
   library(ggplot2)
@@ -370,8 +370,12 @@ simulate_trajectory <- function(n.obs=1 ,
         eval(parse(text=paste("slope2.funct[[i]]<-as.function(alist(t=, ", slope2[i],"))", sep="")))
         eval(parse(text=paste("slope1.funct[[i]]<-as.function(alist(t=, ", slope1[i],"))", sep="")))
       }
-      
-      eval(parse(text=paste("jumptime[which(groupref==q)]<-" , time.step.change[1] , "(", number, "," , jumptime.groups[which(groupings==q)] , "," , as.numeric(time.step.change[3])*sd.ratio , ")" , sep="")))
+      if(time.step.change[1]=="rnorm"){
+        jumptime.sd<-time.step.change[3]*sd.ratio
+      }else{
+        jumptime.sd<-1/sd.ratio
+      }
+      eval(parse(text=paste("jumptime[which(groupref==q)]<-rnorm(", number, "," , jumptime.groups[which(groupings==q)] , "," , jumptime.sd , ")" , sep="")))
       eval(parse(text=paste("errorsd[which(groupref==q)]<-abs(" , sd.error[1] , "(", number, "," , sd.error[2] , "," , sd.error[3] , "))" , sep="")))
       
       if (length(part.2.average)==0 | (length(part.2.average)>0 && length(part.1.average)>0 && length(value.step.change)>0)) {
@@ -515,6 +519,7 @@ simulate_trajectory <- function(n.obs=1 ,
       sd[(nrow(times))*(y-1)+x]<-errorsd[y]
     }
   }
+  
   
   #matrix of phases
   phases<-matrix(ncol=obs, nrow=nrow(times))
@@ -787,8 +792,8 @@ simulate_trajectory <- function(n.obs=1 ,
     theme(axis.title=element_text(size=10))
   
   summary.plot<-grid.arrange(grobs=list(p3,p6,p7,p8,p0),  layout_matrix=rbind(c(1,1,2,2), c(3,3,4,4), c(5,5,5,5), c(5,5,5,5)))
-  if(plot==TRUE){
-    print(summary.plot)
+  if(print.plot==TRUE){
+    plot(summary.plot)
   }
   #return list of data, summary and plot
   
