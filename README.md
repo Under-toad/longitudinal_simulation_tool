@@ -38,11 +38,12 @@ The function `simulate.trajectory` requires the libraries `ggplot2`, `gridExtra`
 |`area.x`|numeric, length=1|no default|Upper bound for x-coordinates of the centre of each spatial group. These will be sampled from a uniform distribution spanning from zero to this value.|
 |`area.y`|numeric, length=1|no default|Upper bound for y-coordinates of the centre of each spatial group. These will be sampled from a uniform distribution spanning from zero to this value.|
 |`sd.ratio`|numeric, length=1|`0.5`|Random variation in parameters in different spatial or route groups as a fraction of the random variation in parameters specified in `part.1.average`, `part.1.slope` etc.|
-|`sd.ratio.day`|numeric, length=1|`0.5`|Random variation in parameters on different `dayreps` as a fraction of the random variation in parameters specified in `part.1.average`, `part.1.slope` etc.|
+|`sd.ratio.day`|numeric, length=1|`0.5`|Random variation in parameters on different `dayreps` as a fraction of the random variation introduced to the parameters (the third argument for each of `part.1.average`, `part.1.slope` etc.) If `sd.ratio.day` is set to zero there will be no random variation in parameters or horizontal offset within spatial groups for different days.|
 |`plot`|logical, length=1|`TRUE`|Whether the summary plot is produced.|
-|`offset.sd`|numeric, length=1|`0`|Standard deviation of individual level translations in the x-axis, sampled from a normal distribution with mean 0.|
+|`offset.amount`|numeric, length=1|`0`|For specifying a horizontal offset for each spatial group.  Each group will be offset by a value sampled from a normal distribution with mean 0 and standard deviation `offset.amount` with some random within-group variation around this value.|
+|`fixed.effect.part.1.slope`|numeric, length=`n.obs`|`NULL`|A vector of values specifying a fixed amount by which `part.1.slope` will be multiplied for each observation unit|
 # Output
-The function outputs a list containing a maximum of 7 elements:
+The function outputs a list containing a maximum of 8 elements:
 
 |Element|Description|
 |---|---|
@@ -53,6 +54,8 @@ The function outputs a list containing a maximum of 7 elements:
 |`section2.function`|Individual functions specified for second trajectory section (including multiplier)|
 |`coordinates.info`|Contains two parts. The first contains central coordinates for each spatial group. The second contains individual level coordinates and spatial group membership.|
 |`group.info`	|Data frame containing information about the average parameter values in spatial and day groups.|
+|`distmat`|Matrix or list of two matrixes detailing the distances between observation unit locations or observation unit origins and destinations.|
+
 # Warning messages
 Common warning messages include the following:
 
