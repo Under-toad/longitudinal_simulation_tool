@@ -1,19 +1,21 @@
 simulate_trajectory <- function(n.obs=1 , 
-max.time=20 , 
-record.times=NULL, 
-record.times.vary=1,
+                                max.time=20 , 
+                                record.times=NULL,
+                                record.times.vary=1,
                                 part.1.average=character() , 
                                 part.2.average=character() , 
                                 part.1.slope=c("rnorm", "0", "1", "1") , 
                                 part.2.slope=c("rnorm", "0", "1", "1") , 
                                 time.step.change=c("rnorm", "0", "1") , 
                                 value.step.change=character() , 
-                                sd.error=c("rlnorm","0.5", "0.5"), 
+                                sd.error=c("rlnorm","0.5", "0.5"),
                                 between.cor=0, 
                                 within.cor=0,
                                 dayreps=1, 
                                 dayreps.cor=0, 
+                                no.day.var=F, 
                                 fixed.spacegroups=NULL,
+                                fixed.effect.part.1.slope=NULL,
                                 spacegroups=NULL, 
                                 spacegroup.size=NULL, 
                                 origin.dest=FALSE, 
@@ -138,6 +140,8 @@ record.times.vary=1,
       routegroup<-as.numeric(paste(spacegroup1, spacegroup2,sep=""))
       groupings<-unique(routegroup)
       groupref<-rep(routegroup, dayreps)
+      odinfo<-rep(paste(spacegroup1, spacegroup2,sep=":"),dayreps)
+      
     } else {
       distance2<-matrix(ncol=obs, nrow=obs, rep(1, obs^2))
     }
@@ -185,10 +189,11 @@ record.times.vary=1,
         }
       }
       individual.coords2<-cbind(id=c(1:n.obs),spacegroup2=spacegroup2[1:n.obs],x.coord2=x.coord2[1:n.obs],y.coord2=y.coord2[1:n.obs])
-      if(isFALSE(all.equal(spacegroup1, spacegroup2))){
+      if(all.equal(spacegroup1, spacegroup2)!=TRUE){
         routegroup<-as.numeric(paste(spacegroup1, spacegroup2,sep=""))
         groupref<-rep(routegroup, dayreps)
         groupings<-unique(routegroup)
+        odinfo<-rep(paste(spacegroup1, spacegroup2,sep=":"),dayreps)
       } else {
         routegroup<-spacegroup1
       }
@@ -314,8 +319,8 @@ record.times.vary=1,
       }
     } else {
       if(length(groupings)>1){
-      offset.sd<-rep(0, length(groupings))
-      group.info$offset.sd<-offset.sd
+        offset.sd<-rep(0, length(groupings))
+        group.info$offset.sd<-offset.sd
       } else {
         offset.sd<-0
       }
@@ -343,6 +348,9 @@ record.times.vary=1,
       eval(parse(text=paste("slope2[which(groupref==q)]<-as.character(" , part.2.slope[1] , "(", number, "," , slope2.groups.num[which(groupings==q)] , "," , as.numeric(part.2.slope[3])*sd.ratio , "))" , sep="")))
       
       slope2[which(groupref==q)]<-paste(slope2[which(groupref==q)], "*", slope.2.mult, "*t", sep="") 
+      if(is.null(fixed.effect.part.1.slope)==F){
+        slope1[which(groupref==q)]<-paste(fixed.effect.part.1.slope[which(groupref==q)],"*(",slope1[which(groupref==q)],")",sep="")
+      }
       
       offset1<-paste("(t+", rnorm(n=number, offset.sd[groupings==q], offset.amount/2), ")", sep="")
       offset2<-paste("(t+", rnorm(n=number, offset.sd[groupings==q], offset.amount/2), ")", sep="")
@@ -386,13 +394,38 @@ record.times.vary=1,
         }
       }
     }
-  } else{ #if no spatial groupings specified
+    if(no.day.var==T){
+      slope1<-rep(slope1[1:n.obs], dayreps)
+      slope2<-rep(slope2[1:n.obs], dayreps)
+      offset.sd<-rep(offset.sd[1:n.obs], dayreps)
+      for(i in 2:dayreps){
+        for(j in 1:n.obs){
+          slope1.funct[[n.obs*(i-1)+j]]<-slope1.funct[[j]]
+          slope2.funct[[n.obs*(i-1)+j]]<-slope2.funct[[j]]
+          
+        }
+      }
+      jumptime<-rep(jumptime[1:n.obs], dayreps)
+      errorsd<-rep(errorsd[1:n.obs], dayreps)
+      jumpval<-rep(jumpval[1:n.obs], dayreps)
+      average1<-rep(average1[1:n.obs], dayreps)
+      true.start<-rep(true.start[1:n.obs], dayreps)
+      intercept.2<-rep(intercept.2[1:n.obs], dayreps)
+      average2<-rep(average2[1:n.obs], dayreps)
+    }
+  } 
+  if(exists("groupings")==FALSE){ #if no spatial groupings specified
     
     #set true parameter values for individuals depending on what has been specified
     eval(parse(text=paste("slope1<-" , part.1.slope[1] , "(", obs, "," , part.1.slope[2] , "," , part.1.slope[3] , ")" , sep="")))
     slope1<-paste(slope1, "*", slope.1.mult, "*t", sep="")
     eval(parse(text=paste("slope2<-" , part.2.slope[1] , "(", obs, "," , part.2.slope[2] , "," , part.2.slope[3] , ")" , sep="")))
     slope2<-paste(slope2, "*", slope.2.mult, "*t", sep="") 
+    #add fixed effect if present
+    if(is.null(fixed.effect.part.1.slope)==F){
+      slope1<-paste(fixed.effect.part.1.slope,"*(",slope1,")",sep="")
+    }
+    
     slope1.funct<-vector("list", length(slope1))
     slope2.funct<-vector("list", length(slope2))
     
@@ -400,6 +433,8 @@ record.times.vary=1,
     offset2<-paste("(t+", rnorm(n=obs, 0, offset.amount), ")", sep="")
     slope1<-mapply(gsub, replacement=offset1, x=slope1, MoreArgs=list(pattern="t"))
     slope2<-mapply(gsub, replacement=offset2, x=slope2, MoreArgs=list(pattern="t"))
+    
+    
     
     for (i in 1:length(slope2)){
       eval(parse(text=paste("slope2.funct[[i]]<-as.function(alist(t=, ", slope2[i],"))", sep="")))
@@ -451,6 +486,8 @@ record.times.vary=1,
     }
   }
   #set up more values
+  
+  
   
   
   #sample measurement times
@@ -619,13 +656,16 @@ record.times.vary=1,
   if(exists("groupings")==T){
     value<-cbind(value, groupref)
   }
+  if(exists("odinfo")==T){
+    value<-cbind(value, odinfo)
+  }
   colnames(value)[4]<-c("time")
   value<-value[order(value$id, value$meas.no),]
   #plots and stuff
   
   if (obs>10){
     if(dayreps==1){
-      if(length(groupings)>1){
+      if(length(groupings)>1 & length(groupings)<20){
         p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(groupref)))+
           geom_line(aes(y=value))+
           geom_point(aes(y=value))+
@@ -640,7 +680,7 @@ record.times.vary=1,
           ggtitle("Simulated data patterns")
       }
     } else{
-      if(length(groupings)>1){
+      if(length(groupings)>1 & length(groupings)<20){
         p0<-ggplot(data=value, aes(x=time, group=idday, colour=as.factor(groupref)))+
           geom_line(aes(y=value))+
           geom_point(aes(y=value))+
@@ -743,7 +783,8 @@ record.times.vary=1,
                      section1.function=slope1.funct, 
                      section2.function=slope2.funct,
                      coordinates.info=list(spacegroup.info, individual.coords1, individual.coords2),
-                     group.info=group.info)
+                     group.info=group.info,
+                     distmat=list(distance1,distance2))
     }else{
       ret.list<-list(data=value, 
                      simulation.summary=summary[,c(1:12)],
@@ -751,7 +792,7 @@ record.times.vary=1,
                      section1.function=slope1.funct, 
                      section2.function=slope2.funct,
                      coordinates.info=list(spacegroup.info, individual.coords1),
-                     group.info=group.info)
+                     group.info=group.info, distmat=distance1)
     }
   } else {
     ret.list<-list(data=value, 
