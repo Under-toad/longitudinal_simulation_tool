@@ -654,7 +654,7 @@ simulate_trajectory <- function(n.obs=1 ,
     value<-value[,-which(colnames(value)=="added")]
     times<-cbind(times, sep.group.ref)
     times<-reshape(times, 
-                   varying=colnames(times[,1:(ncol(value)-1-ncol(sep.group.ref))]), 
+                   varying=colnames(times[,1:(ncol(times)-1-ncol(sep.group.ref))]), 
                    idvar<-"meas.no", 
                    direction="long", 
                    timevar<-"added", 
