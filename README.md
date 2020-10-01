@@ -32,18 +32,18 @@ The function `simulate.trajectory` requires the libraries `ggplot2`, `gridExtra`
 |`within.cor`|numeric, length=1|`0`|Correlation of error terms within individuals at adjacent time points. An order 1 autocorrelation structure is specified within individuals. Must be between -1 and 1.|
 |`dayreps`|numeric, length=1|`1`|Routes can be measured over the time specified on multiple occasions (for example, different days). This specifies the number of these occasions.|
 |`dayreps.cor`|numeric, length=1|`0`|Error correlation between data measured at the same time on the same route on consecutive days.|
-|`fixed.spacegroups`|	Matrix or data frame with 3 or 6 columns	|`NULL`	|Specify this if you wish the observations to be in pre-specified spatial groups. Matrix/data frame columns specify: Group 1 ID, Group 1 X coordinate, Group 1 Y coordinate, Group 2 ID, Group 2 X coordinate, Group 2 Y coordinate. If two groups (6 columns) are specified, origin-destination data will be produced, if 3 columns are specified it will not (this will override the specification of `origin.dest`). The length of the matrix/data frame must be equal to `n.obs`.|
 |`spacegroups`|numeric, length=1|no default|Number of spatial groups or clusters of individuals to be included in the dataset.|
 |`spacegroups.size`|numeric, length=1|no default|The average deviation of the x and y coordinates for an individual in a spatial group from its centre (the distribution of points follows a bivariate normal distribution, this is the standard deviation of both distributions that comprise this).|
 |`origin.dest`|logical, length=1|`FALSE`|If `TRUE`, data will be associated with a 'route' between two spatial points.|
 |`area.x`|numeric, length=1|no default|Upper bound for x-coordinates of the centre of each spatial group. These will be sampled from a uniform distribution spanning from zero to this value.|
 |`area.y`|numeric, length=1|no default|Upper bound for y-coordinates of the centre of each spatial group. These will be sampled from a uniform distribution spanning from zero to this value.|
-|`sd.ratio`|numeric, length=1|`0.5`|Used to specify the amount of random variation in parameters between spatial groups. The standard deviation for this spatial-group-related variation is specified as a fraction of the random variation already introduced to the parameters (the third argument for each of `part.1.average`, `part.1.slope etc`.)|
-|`sd.ratio.day`|numeric, length=1|`0.5`|Used to specify the amount of random variation in parameters between each `dayrep` specified. The standard deviation for this date-related variation is specified as a fraction of the random variation already introduced to the parameters (the third argument for each of `part.1.average`, `part.1.slope` etc.)|
-|`plot`|logical, length=1|`TRUE`|Whether the summary plot is produced.|
-|`offset.amount`|numeric, length=1|`0`|For specifying a horizontal offset for each spatial group. Each group will be offset by a value sampled from a normal distribution with mean `0` and standard deviation `offset.amount` with some random within-group variation around this value.|
+|`sd.ratio`|numeric, length=1|`0.5`|Random variation in parameters in different spatial or route groups as a fraction of the random variation in parameters specified in `part.1.average`, `part.1.slope` etc.|
+|`sd.ratio.day`|numeric, length=1|`0.5`|Random variation in parameters on different `dayreps` as a fraction of the random variation introduced to the parameters (the third argument for each of `part.1.average`, `part.1.slope` etc.) If `sd.ratio.day` is set to zero there will be no random variation in parameters or horizontal offset within spatial groups for different days.|
+|`print.plot`|logical, length=1|`TRUE`|Whether the summary plot is produced.|
+|`offset.amount`|numeric, length=1|`0`|For specifying a horizontal offset for each spatial group.  Each group will be offset by a value sampled from a normal distribution with mean 0 and standard deviation `offset.amount` with some random within-group variation around this value.|
+|`fixed.effect.part.1.slope`|numeric, length=`n.obs`|`NULL`|A vector of values specifying a fixed amount by which `part.1.slope` will be multiplied for each observation unit|
 # Output
-The function outputs a list containing 5 elements:
+The function outputs a list containing a maximum of 8 elements:
 
 |Element|Description|
 |---|---|
@@ -53,6 +53,9 @@ The function outputs a list containing 5 elements:
 |`section1.function`|Individual functions specified for first trajectory section (including multiplier)|
 |`section2.function`|Individual functions specified for second trajectory section (including multiplier)|
 |`coordinates.info`|Contains two parts. The first contains central coordinates for each spatial group. The second contains individual level coordinates and spatial group membership.|
+|`group.info`	|Data frame containing information about the average parameter values in spatial and day groups.|
+|`distmat`|Matrix or list of two matrixes detailing the distances between observation unit locations or observation unit origins and destinations.|
+
 # Warning messages
 Common warning messages include the following:
 
@@ -67,12 +70,26 @@ Common warning messages include the following:
 These occur if wave or irregular sampling is specified and an individual has no recording times either before or after the step change. This means some summary values cannot be calculated but does not cause any other issues.
 
 # Example of use
-The following function call simulates data for 50 individuals over 30 time points. The first function section follows a log(time) curve and the second follows a cos(time)*time curve. The coefficients for these are from a lognormal distribution with parameters 3 and 0.2 and normal distribution with parameters 1 and 0.5, respectively. Individual step-change times are chosen from a uniform distribution spanning from time=10 to time=20 and the step change value is chosen from a normal distribution with mean -100 and standard deviation 3. While error terms are normally distributed, individual level error standard deviations are chosen from a lognormal distribution. Adjacent measurements within individuals have an error correlation of 0.5. Simultaneous measurements for different individuals have an error correlation of 0.5. Measurements are taken irregularly, 10 times for each individual. The figure below shows the plots produced by the function.
+The following function call simulates data for 50 individuals over 30 time points. The first function section follows a log(time) curve and the second follows a cos(time)*time curve. The coefficients for these are from a lognormal distribution with parameters 1 and 0.1 and normal distribution with parameters 1 and 0.5, respectively. Individual step-change times are chosen from a uniform distribution spanning from time=10 to time=20 and the step change value is chosen from a normal distribution with mean -100 and standard deviation 3. While error terms are normally distributed, individual level error standard deviations are chosen from a lognormal distribution. Adjacent measurements within individuals have an error correlation of 0.5. Simultaneous measurements for different individuals have an error correlation of 0.5. Measurements are taken irregularly, 10 times for each individual. The figure below shows the plots produced by the function.
 
-`B <- simulate_trajectory(n.obs=50 , max.time=30, record.times=10,
-part.1.average=c("rnorm","100", "3"), part.1.slope=c("rlnorm", "3", "0.2", "log(t)/t") , 
-part.2.slope=c("rnorm", "1", "0.5", "cos(t)") , time.step.change=c("runif","10", "20") , value.step.change=c("rnorm","-100", "3"), sd.error=c("rlnorm","1", "0.5"), 
-between.cor=0.3, within.cor=0.5, spacegroups=2, spacegroup.size=1, area.x=30, area.y=30)`
+`B <- simulate_trajectory(n.obs=50 , 
+                         max.time=30, 
+                         record.times=10, 
+                         part.1.average=c("rnorm","100", "3"), 
+                         part.1.slope=c("rlnorm", "1", "0.1", "log(t)/t") , 
+                         part.2.slope=c("rnorm", "1", "0.5", "cos(t)") , 
+                         time.step.change=c("runif","10", "20") , 
+                         value.step.change=c("rnorm","-100", "3"), 
+                         sd.error=c("rlnorm","1", "0.5"), 
+                         between.cor=0.3, 
+                         within.cor=0.5, 
+                         dayreps=1,
+                         spacegroups=2, 
+                         spacegroup.size=1, 
+                         area.x=30, 
+                         area.y=30,
+                         sd.ratio=0.5,
+                         offset.amount=0)`
 
 ![Graphs produced by example code](https://user-images.githubusercontent.com/25984118/48132614-1e82fd80-e28c-11e8-87fd-2c759ff75593.png)
 
