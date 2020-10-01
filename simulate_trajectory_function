@@ -22,7 +22,7 @@ simulate_trajectory <- function(n.obs=1 ,
                                 area.y=NULL, 
                                 sd.ratio=0.5, 
                                 sd.ratio.day=0.5, 
-                                plot=TRUE, 
+                                print.plot=TRUE, 
                                 offset.amount=0){ 
   #load libraries required
   library(ggplot2)
@@ -64,7 +64,7 @@ simulate_trajectory <- function(n.obs=1 ,
     stop("within.cor incorrectly specified. within.cor must lie between -1 and 1")
   }
   if(is.null(fixed.spacegroups)==F){
-    if(class(fixed.spacegroups)!="matrix" & class(fixed.spacegroups)!="data.frame"){
+    if(class(fixed.spacegroups)[1]!="matrix" & class(fixed.spacegroups)[1]!="data.frame"){
       stop("If specified, fixed.spacegroups should be a *matrix or data frame* with 3 or 6 columns (group1, x coordinate 1, y coordinate 1, group2, x coordinate 2, y coordinate 2) and n.obs rows.")
     }
     if(ncol(fixed.spacegroups)!=3 & ncol(fixed.spacegroups)!=6){
@@ -76,6 +76,9 @@ simulate_trajectory <- function(n.obs=1 ,
     if(ncol(fixed.spacegroups)==3){
       origin.dest=FALSE
     }
+  }
+  if(is.null(fixed.effect.part.1.slope)==F & length(fixed.effect.part.1.slope)!=n.obs){
+    stop("If specified, fixed.effect.part.1.slope should be a numeric vector of length n.obs")
   }
   #need some error messages for things in the spacegroups2 dept
   #set up some values and things
@@ -115,6 +118,7 @@ simulate_trajectory <- function(n.obs=1 ,
       individual.coords1<-cbind(id=c(1:n.obs), spacegroup1=spacegroup1[1:n.obs],x.coord1=x.coord1[1:n.obs],y.coord1=y.coord1[1:n.obs])
       groupings<-unique(spacegroup1)
       groupref<-rep(spacegroup1, dayreps)
+      sep.group.ref<-data.frame(spacegroup=rep(spacegroup1, dayreps))
     } else {
       distance1<-matrix(ncol=obs, nrow=obs, rep(1, obs^2))
     }
@@ -139,7 +143,7 @@ simulate_trajectory <- function(n.obs=1 ,
       routegroup<-as.numeric(paste(spacegroup1, spacegroup2,sep=""))
       groupings<-unique(routegroup)
       groupref<-rep(routegroup, dayreps)
-      odinfo<-rep(paste(spacegroup1, spacegroup2,sep=":"),dayreps)
+      sep.group.ref<-data.frame(spacegroup=rep(paste(spacegroup1, spacegroup2, sep=":"), dayreps))
       
     } else {
       distance2<-matrix(ncol=obs, nrow=obs, rep(1, obs^2))
@@ -174,6 +178,7 @@ simulate_trajectory <- function(n.obs=1 ,
     individual.coords1<-cbind(id=c(1:n.obs), spacegroup1=spacegroup1[1:n.obs],x.coord1=x.coord1[1:n.obs],y.coord1=y.coord1[1:n.obs])
     groupings<-unique(spacegroup1)
     groupref<-rep(spacegroup1, dayreps)
+    sep.group.ref<-data.frame(spacegroup=rep(spacegroup1, dayreps))
     
     if(ncol(fixed.spacegroups)==6){
       spacegroup2<-as.numeric(as.character(fixed.spacegroups[,4]))
@@ -192,7 +197,7 @@ simulate_trajectory <- function(n.obs=1 ,
         routegroup<-as.numeric(paste(spacegroup1, spacegroup2,sep=""))
         groupref<-rep(routegroup, dayreps)
         groupings<-unique(routegroup)
-        odinfo<-rep(paste(spacegroup1, spacegroup2,sep=":"),dayreps)
+        sep.group.ref<-data.frame(spacegroup=rep(paste(spacegroup1, spacegroup2, sep=":"), dayreps))
       } else {
         routegroup<-spacegroup1
       }
@@ -239,6 +244,7 @@ simulate_trajectory <- function(n.obs=1 ,
   daygroups2<-daygroups[order(daygroups)]
   spacedaygroups<-cbind(spatial.groups=rep(groupings, dayreps), daygroups2)
   groupref<-as.numeric(paste(groupref, daynumbers, sep=""))
+  sep.group.ref$day<-daynumbers
   
   
   #then add this on for each thing
@@ -364,8 +370,12 @@ simulate_trajectory <- function(n.obs=1 ,
         eval(parse(text=paste("slope2.funct[[i]]<-as.function(alist(t=, ", slope2[i],"))", sep="")))
         eval(parse(text=paste("slope1.funct[[i]]<-as.function(alist(t=, ", slope1[i],"))", sep="")))
       }
-      
-      eval(parse(text=paste("jumptime[which(groupref==q)]<-" , time.step.change[1] , "(", number, "," , jumptime.groups[which(groupings==q)] , "," , as.numeric(time.step.change[3])*sd.ratio , ")" , sep="")))
+      if(time.step.change[1]=="rnorm"){
+        jumptime.sd<-time.step.change[3]*sd.ratio
+      }else{
+        jumptime.sd<-1/sd.ratio
+      }
+      eval(parse(text=paste("jumptime[which(groupref==q)]<-rnorm(", number, "," , jumptime.groups[which(groupings==q)] , "," , jumptime.sd , ")" , sep="")))
       eval(parse(text=paste("errorsd[which(groupref==q)]<-abs(" , sd.error[1] , "(", number, "," , sd.error[2] , "," , sd.error[3] , "))" , sep="")))
       
       if (length(part.2.average)==0 | (length(part.2.average)>0 && length(part.1.average)>0 && length(value.step.change)>0)) {
@@ -510,6 +520,7 @@ simulate_trajectory <- function(n.obs=1 ,
     }
   }
   
+  
   #matrix of phases
   phases<-matrix(ncol=obs, nrow=nrow(times))
   for (i in 1:obs){
@@ -626,36 +637,63 @@ simulate_trajectory <- function(n.obs=1 ,
                         "average2.input", "average2.expected", "average2.output",
                         "jumptime.input", "jump.input", "jump.expected", "jump.output", "error.sd")
   #reshape data to long format
+  
+  
+  
+  
   value$id<-c(1:nrow(value))
   times$id<-c(1:nrow(times))
-  value<-reshape(value, varying=colnames(value[,1:(ncol(value)-1)]), idvar<-"meas.no", direction="long", timevar<-"id", sep=".", v.names=c("value"))
-  times<-reshape(times, varying=colnames(times[,1:(ncol(times)-1)]), idvar<-"meas.no", direction="long", timevar<-"id", sep=".", v.names=c("time"))
-  
-  value<-cbind(value, times$time)
   if (dayreps>1){
-    value<-cbind(value, daynumbers)
     value$id<-rep(c(1:n.obs), dayreps)
-    value$idday<-as.factor(paste(value$id, value$daynumbers, sep=":"))
+    times$id<-rep(c(1:n.obs), dayreps)
   }
   if(exists("groupings")==T){
-    value<-cbind(value, groupref)
+    value<-cbind(value, sep.group.ref)
+    value<-reshape(value, 
+                    varying=colnames(value[,1:(ncol(value)-1-ncol(sep.group.ref))]), 
+                    idvar<-"meas.no", 
+                    direction="long", 
+                    timevar<-"added", 
+                    sep=".", 
+                    v.names=c("value"))
+    value<-value[,-which(colnames(value)=="added")]
+    times<-cbind(times, sep.group.ref)
+    times<-reshape(times, 
+                   varying=colnames(times[,1:(ncol(times)-1-ncol(sep.group.ref))]), 
+                   idvar<-"meas.no", 
+                   direction="long", 
+                   timevar<-"added", 
+                   sep=".", 
+                   v.names=c("time"))
+    times<-times[,-which(colnames(times)=="added")]
+    
+  } else{
+  value<-reshape(value, varying=colnames(value[,1:(ncol(value)-1)]), idvar<-"meas.no", direction="long", timevar<-"id", sep=".", v.names=c("value"))
+  times<-reshape(times, varying=colnames(times[,1:(ncol(times)-1)]), idvar<-"meas.no", direction="long", timevar<-"id", sep=".", v.names=c("time"))
   }
-  if(exists("odinfo")==T){
-    value<-cbind(value, odinfo)
-  }
-  colnames(value)[4]<-c("time")
+  
+  value$time<-times$time
+  
   value<-value[order(value$id, value$meas.no),]
   #plots and stuff
   
   if (obs>10){
     if(dayreps==1){
-      if(length(groupings)>1 & length(groupings)<20){
-        p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(groupref)))+
-          geom_line(aes(y=value))+
-          geom_point(aes(y=value))+
-          theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
-          scale_colour_discrete(name="Spatial group")+
-          ggtitle("Simulated data patterns")
+      if(length(groupings)>1){
+        if(length(groupings)<=20){
+          p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(spacegroup)))+
+            geom_line(aes(y=value))+
+            geom_point(aes(y=value))+
+            theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
+            scale_colour_discrete(name="Spatial group")+
+            ggtitle("Simulated data patterns")
+        }else{
+          p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(spacegroup)))+
+            geom_line(aes(y=value))+
+            geom_point(aes(y=value))+
+            theme(plot.title=element_text(size=10), legend.position="none")+
+            ggtitle("Simulated data patterns") 
+        }
       } else{
         p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(id)))+
           geom_line(aes(y=value))+
@@ -664,15 +702,23 @@ simulate_trajectory <- function(n.obs=1 ,
           ggtitle("Simulated data patterns")
       }
     } else{
-      if(length(groupings)>1 & length(groupings)<20){
-        p0<-ggplot(data=value, aes(x=time, group=idday, colour=as.factor(groupref)))+
-          geom_line(aes(y=value))+
-          geom_point(aes(y=value))+
-          theme( plot.title=element_text(size=10), legend.title=element_text(size=10))+
-          scale_colour_discrete(name="Spatial group")+
-          ggtitle("Simulated data patterns")  
+      if(length(groupings)>1){
+        if(length(groupings)<=20){
+          p0<-ggplot(data=value, aes(x=time, group=interaction(id, day), colour=as.factor(spacegroup)))+
+            geom_line(aes(y=value))+
+            geom_point(aes(y=value))+
+            theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
+            scale_colour_discrete(name="Spatial group")+
+            ggtitle("Simulated data patterns")
+        }else{
+          p0<-ggplot(data=value, aes(x=time, group=interaction(id,day), colour=as.factor(spacegroup)))+
+            geom_line(aes(y=value))+
+            geom_point(aes(y=value))+
+            theme(plot.title=element_text(size=10), legend.position="none")+
+            ggtitle("Simulated data patterns") 
+        }
       } else{
-        p0<-ggplot(data=value, aes(x=time, group=idday, colour=as.factor(id)))+
+        p0<-ggplot(data=value, aes(x=time, group=interaction(id,day), colour=as.factor(id)))+
           geom_line(aes(y=value))+
           geom_point(aes(y=value))+
           theme(legend.position="none", plot.title=element_text(size=10))+
@@ -682,7 +728,7 @@ simulate_trajectory <- function(n.obs=1 ,
   } else {
     if(dayreps==1){
       if(length(groupings)>1){
-        p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(groupref)))+
+        p0<-ggplot(data=value, aes(x=time, group=id, colour=as.factor(spatial.groups)))+
           geom_line(aes(y=value))+
           geom_point(aes(y=value))+
           theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
@@ -698,14 +744,14 @@ simulate_trajectory <- function(n.obs=1 ,
       }
     } else{
       if(length(groupings)>1){
-        p0<-ggplot(data=value, aes(x=time, group=idday, colour=as.factor(groupref)))+
+        p0<-ggplot(data=value, aes(x=time, group=interaction(id,day), colour=as.factor(spatial.groups)))+
           geom_line(aes(y=value))+
           geom_point(aes(y=value))+
           theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
           scale_colour_discrete(name="Spatial group")+
           ggtitle("Simulated data patterns")  
       } else{
-        p0<-ggplot(data=value, aes(x=time, group=idday, colour=as.factor(id)))+
+        p0<-ggplot(data=value, aes(x=time, group=interaction(id,day), colour=as.factor(id)))+
           geom_line(aes(y=value))+
           geom_point(aes(y=value))+
           theme(plot.title=element_text(size=10), legend.title=element_text(size=10))+
@@ -746,8 +792,8 @@ simulate_trajectory <- function(n.obs=1 ,
     theme(axis.title=element_text(size=10))
   
   summary.plot<-grid.arrange(grobs=list(p3,p6,p7,p8,p0),  layout_matrix=rbind(c(1,1,2,2), c(3,3,4,4), c(5,5,5,5), c(5,5,5,5)))
-  if(plot==TRUE){
-    summary.plot
+  if(print.plot==TRUE){
+    plot(summary.plot)
   }
   #return list of data, summary and plot
   
