@@ -371,7 +371,7 @@ simulate_trajectory <- function(n.obs=1 ,
         eval(parse(text=paste("slope1.funct[[i]]<-as.function(alist(t=, ", slope1[i],"))", sep="")))
       }
       if(time.step.change[1]=="rnorm"){
-        jumptime.sd<-time.step.change[3]*sd.ratio
+        jumptime.sd<-as.numeric(time.step.change[3])*sd.ratio
       }else{
         jumptime.sd<-1/sd.ratio
       }
