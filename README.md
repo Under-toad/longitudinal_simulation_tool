@@ -70,12 +70,26 @@ Common warning messages include the following:
 These occur if wave or irregular sampling is specified and an individual has no recording times either before or after the step change. This means some summary values cannot be calculated but does not cause any other issues.
 
 # Example of use
-The following function call simulates data for 50 individuals over 30 time points. The first function section follows a log(time) curve and the second follows a cos(time)*time curve. The coefficients for these are from a lognormal distribution with parameters 3 and 0.2 and normal distribution with parameters 1 and 0.5, respectively. Individual step-change times are chosen from a uniform distribution spanning from time=10 to time=20 and the step change value is chosen from a normal distribution with mean -100 and standard deviation 3. While error terms are normally distributed, individual level error standard deviations are chosen from a lognormal distribution. Adjacent measurements within individuals have an error correlation of 0.5. Simultaneous measurements for different individuals have an error correlation of 0.5. Measurements are taken irregularly, 10 times for each individual. The figure below shows the plots produced by the function.
+The following function call simulates data for 50 individuals over 30 time points. The first function section follows a log(time) curve and the second follows a cos(time)*time curve. The coefficients for these are from a lognormal distribution with parameters 1 and 0.1 and normal distribution with parameters 1 and 0.5, respectively. Individual step-change times are chosen from a uniform distribution spanning from time=10 to time=20 and the step change value is chosen from a normal distribution with mean -100 and standard deviation 3. While error terms are normally distributed, individual level error standard deviations are chosen from a lognormal distribution. Adjacent measurements within individuals have an error correlation of 0.5. Simultaneous measurements for different individuals have an error correlation of 0.5. Measurements are taken irregularly, 10 times for each individual. The figure below shows the plots produced by the function.
 
-`B <- simulate_trajectory(n.obs=50 , max.time=30, record.times=10,
-part.1.average=c("rnorm","100", "3"), part.1.slope=c("rlnorm", "3", "0.2", "log(t)/t") , 
-part.2.slope=c("rnorm", "1", "0.5", "cos(t)") , time.step.change=c("runif","10", "20") , value.step.change=c("rnorm","-100", "3"), sd.error=c("rlnorm","1", "0.5"), 
-between.cor=0.3, within.cor=0.5, spacegroups=2, spacegroup.size=1, area.x=30, area.y=30)`
+`B <- simulate_trajectory(n.obs=50 , 
+                         max.time=30, 
+                         record.times=10, 
+                         part.1.average=c("rnorm","100", "3"), 
+                         part.1.slope=c("rlnorm", "1", "0.1", "log(t)/t") , 
+                         part.2.slope=c("rnorm", "1", "0.5", "cos(t)") , 
+                         time.step.change=c("runif","10", "20") , 
+                         value.step.change=c("rnorm","-100", "3"), 
+                         sd.error=c("rlnorm","1", "0.5"), 
+                         between.cor=0.3, 
+                         within.cor=0.5, 
+                         dayreps=1,
+                         spacegroups=2, 
+                         spacegroup.size=1, 
+                         area.x=30, 
+                         area.y=30,
+                         sd.ratio=0.5,
+                         offset.amount=0)`
 
 ![Graphs produced by example code](https://user-images.githubusercontent.com/25984118/48132614-1e82fd80-e28c-11e8-87fd-2c759ff75593.png)
 
