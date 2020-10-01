@@ -23,7 +23,7 @@ B <- simulate_trajectory(n.obs=10,
                          area.y=30, 
                          sd.ratio=0.5,
                          sd.ratio.day=0.5,
-                         plot=T, 
+                         print.plot=F, 
                          offset.amount=4)
 
 #To see coordinates
