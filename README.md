@@ -39,7 +39,7 @@ The function `simulate.trajectory` requires the libraries `ggplot2`, `gridExtra`
 |`area.y`|numeric, length=1|no default|Upper bound for y-coordinates of the centre of each spatial group. These will be sampled from a uniform distribution spanning from zero to this value.|
 |`sd.ratio`|numeric, length=1|`0.5`|Random variation in parameters in different spatial or route groups as a fraction of the random variation in parameters specified in `part.1.average`, `part.1.slope` etc.|
 |`sd.ratio.day`|numeric, length=1|`0.5`|Random variation in parameters on different `dayreps` as a fraction of the random variation introduced to the parameters (the third argument for each of `part.1.average`, `part.1.slope` etc.) If `sd.ratio.day` is set to zero there will be no random variation in parameters or horizontal offset within spatial groups for different days.|
-|`plot`|logical, length=1|`TRUE`|Whether the summary plot is produced.|
+|`print.plot`|logical, length=1|`TRUE`|Whether the summary plot is produced.|
 |`offset.amount`|numeric, length=1|`0`|For specifying a horizontal offset for each spatial group.  Each group will be offset by a value sampled from a normal distribution with mean 0 and standard deviation `offset.amount` with some random within-group variation around this value.|
 |`fixed.effect.part.1.slope`|numeric, length=`n.obs`|`NULL`|A vector of values specifying a fixed amount by which `part.1.slope` will be multiplied for each observation unit|
 # Output
